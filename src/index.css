@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+/* ============ Civic-Trust design system ============ */
+@theme {
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Surfaces — warm paper, not flat white */
+  --color-paper: oklch(98.4% 0.006 85);
+  --color-surface: oklch(100% 0 0);
+  --color-surface-sunk: oklch(96.5% 0.008 85);
+  --color-ink: oklch(22% 0.02 265);
+  --color-ink-soft: oklch(42% 0.02 265);
+  --color-muted: oklch(58% 0.015 265);
+  --color-border: oklch(90% 0.01 265);
+  --color-border-strong: oklch(82% 0.015 265);
+
+  /* Brand — civic indigo + saffron accent */
+  --color-primary: oklch(48% 0.17 268);
+  --color-primary-hover: oklch(42% 0.17 268);
+  --color-primary-fg: oklch(99% 0 0);
+  --color-primary-tint: oklch(95% 0.04 268);
+  --color-accent: oklch(72% 0.16 62);
+  --color-accent-fg: oklch(25% 0.06 62);
+
+  /* Semantic status palette */
+  --color-status-reported: oklch(60% 0.02 265);
+  --color-status-verified: oklch(62% 0.12 200);
+  --color-status-acknowledged: oklch(58% 0.15 255);
+  --color-status-progress: oklch(70% 0.15 70);
+  --color-status-resolved: oklch(63% 0.15 150);
+  --color-status-validated: oklch(58% 0.16 290);
+  --color-status-closed: oklch(70% 0.01 265);
+  --color-status-rejected: oklch(58% 0.18 25);
+  --color-status-escalated: oklch(58% 0.2 18);
+
+  /* Severity ramp (1→10) */
+  --color-sev-low: oklch(68% 0.15 150);
+  --color-sev-mid: oklch(72% 0.16 80);
+  --color-sev-high: oklch(62% 0.2 25);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Radii */
+  --radius-card: 1rem;
+
+  /* Shadows — layered, soft */
+  --shadow-card: 0 1px 2px oklch(22% 0.02 265 / 0.04), 0 6px 20px oklch(22% 0.02 265 / 0.06);
+  --shadow-pop: 0 8px 30px oklch(22% 0.02 265 / 0.14);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  * {
+    border-color: var(--color-border);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Leaflet must sit below app overlays */
+.leaflet-container { z-index: 0; font-family: var(--font-sans); }
+.leaflet-pane, .leaflet-top, .leaflet-bottom { z-index: 0; }
