@@ -35,7 +35,7 @@ function MobileNav() {
   const { t } = useTranslation()
   return (
     <nav className="sticky bottom-0 z-40 grid grid-cols-4 border-t border-border bg-paper/95 backdrop-blur sm:hidden">
-      <NavLink to="/" end className={mobileLink}>
+      <NavLink to="/map" className={mobileLink}>
         <MapPin className="size-5" /> {t('nav.map')}
       </NavLink>
       <NavLink to="/report" className={mobileLink}>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowBigUp, Eye, MapPin, ArrowLeft, Send, ShieldCheck, Sparkles } from 'lucide-react'
+import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles } from 'lucide-react'
 import {
   useIssue, useIssueMedia, useComments, useStatusHistory, useValidation,
 } from '@/features/issues/queries'
@@ -17,6 +17,7 @@ import { StatusBadge } from '@/components/issue/StatusBadge'
 import { SeverityMeter } from '@/components/issue/SeverityMeter'
 import { CategoryIcon } from '@/components/issue/CategoryIcon'
 import { StaffActions } from '@/components/issue/StaffActions'
+import { VoteControls } from '@/components/issue/VoteControls'
 import { Avatar } from '@/components/layout/Header'
 import { timeAgo } from '@/lib/utils'
 
@@ -124,25 +125,15 @@ export function IssueDetailPage() {
         <aside className="space-y-4">
           <StaffActions issue={issue} />
           <Card>
-            <CardBody className="space-y-2">
-              <Button
-                variant={voted ? 'primary' : 'outline'}
-                className="w-full justify-between"
-                loading={vote.isPending}
-                onClick={() => requireAuthThen(() => vote.mutate({ userId: session!.user.id, active: voted }))}
-              >
-                <span className="inline-flex items-center gap-2"><ArrowBigUp className="size-5" /> Upvote priority</span>
-                <span className="font-mono font-bold">{issue.vote_count}</span>
-              </Button>
-              <Button
-                variant={confirmed ? 'accent' : 'outline'}
-                className="w-full justify-between"
-                loading={confirm.isPending}
-                onClick={() => requireAuthThen(() => confirm.mutate({ userId: session!.user.id, active: confirmed }))}
-              >
-                <span className="inline-flex items-center gap-2"><Eye className="size-5" /> I've seen this too</span>
-                <span className="font-mono font-bold">{issue.confirm_count}</span>
-              </Button>
+            <CardBody className="flex items-center justify-center">
+              <VoteControls
+                voteCount={issue.vote_count ?? 0}
+                confirmCount={issue.confirm_count ?? 0}
+                voted={voted}
+                confirmed={confirmed}
+                onVote={() => requireAuthThen(() => vote.mutate({ userId: session!.user.id, active: voted }))}
+                onConfirm={() => requireAuthThen(() => confirm.mutate({ userId: session!.user.id, active: confirmed }))}
+              />
             </CardBody>
           </Card>
 

@@ -3,9 +3,10 @@ import { Routes, Route } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { RequireAuth, RequireRole } from '@/features/auth/guards'
 import { Spinner } from '@/components/ui/Spinner'
-import { HomePage } from '@/pages/HomePage'
+import { LandingPage } from '@/pages/LandingPage'
 
 // Code-split the heavier / less-frequent routes.
+const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
 const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
 const IssueDetailPage = lazy(() => import('@/pages/IssueDetailPage').then((m) => ({ default: m.IssueDetailPage })))
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then((m) => ({ default: m.LeaderboardPage })))
@@ -25,7 +26,8 @@ export default function App() {
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
         <Route element={<AppShell />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<LandingPage />} />
+          <Route path="map" element={<HomePage />} />
           <Route path="issue/:id" element={<IssueDetailPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="report" element={<RequireAuth><ReportPage /></RequireAuth>} />

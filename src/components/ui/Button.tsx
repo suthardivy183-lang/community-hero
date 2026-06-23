@@ -37,15 +37,23 @@ interface ButtonProps
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild, loading, children, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button'
+    // When asChild, Radix Slot requires a single child — pass children through
+    // untouched and skip the injected spinner (loading is for real buttons).
     return (
       <Comp
         ref={ref}
         className={cn(buttonVariants({ variant, size }), className)}
-        disabled={disabled || loading}
+        disabled={asChild ? undefined : disabled || loading}
         {...props}
       >
-        {loading ? <Loader2 className="animate-spin" /> : null}
-        {children}
+        {asChild ? (
+          children
+        ) : (
+          <>
+            {loading ? <Loader2 className="animate-spin" /> : null}
+            {children}
+          </>
+        )}
       </Comp>
     )
   },

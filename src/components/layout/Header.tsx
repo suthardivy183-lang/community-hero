@@ -39,7 +39,7 @@ export function Header() {
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 sm:flex">
-          <NavLink to="/" end className={navLinkClass}>
+          <NavLink to="/map" className={navLinkClass}>
             <MapPin className="size-4" /> {t('nav.map')}
           </NavLink>
           {isStaff ? (
