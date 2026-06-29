@@ -8,12 +8,13 @@ interface VoteControlsProps {
   confirmed: boolean
   onVote: () => void
   onConfirm: () => void
+  confirmDisabled?: boolean
   size?: 'sm' | 'md'
 }
 
 /** Compact Reddit-style icon controls — no text labels, just icon + count. */
 export function VoteControls({
-  voteCount, confirmCount, voted, confirmed, onVote, onConfirm, size = 'md',
+  voteCount, confirmCount, voted, confirmed, onVote, onConfirm, confirmDisabled, size = 'md',
 }: VoteControlsProps) {
   const pad = size === 'sm' ? 'h-8 px-2.5' : 'h-10 px-3.5'
   const icon = size === 'sm' ? 'size-4' : 'size-5'
@@ -40,11 +41,12 @@ export function VoteControls({
       <button
         type="button"
         onClick={onConfirm}
-        title="I've seen this too"
+        disabled={confirmDisabled}
+        title={confirmDisabled ? "You can't confirm your own report" : "I've seen this too"}
         aria-pressed={confirmed}
         aria-label={`I've seen this too — ${confirmCount}`}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full border font-semibold transition-all active:scale-95',
+          'inline-flex items-center gap-1.5 rounded-full border font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50',
           pad,
           confirmed
             ? 'border-accent bg-accent text-accent-fg'

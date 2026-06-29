@@ -59,6 +59,46 @@ export function useIssues(filters: IssueFilters = {}) {
   })
 }
 
+export interface Bbox {
+  minLng: number
+  minLat: number
+  maxLng: number
+  maxLat: number
+}
+
+/**
+ * Viewport-scoped issue query — only fetches issues whose geom falls inside the
+ * current map bounds (index-assisted via the GiST geom index). Scales to any
+ * city size, unlike fetching the whole table. Used by the map + feed.
+ */
+export function useIssuesInBbox(
+  bbox: Bbox | null,
+  filters: { categoryId?: string | null; status?: IssueStatus | null } = {},
+) {
+  // Round bounds so small pans don't trigger refetches.
+  const k = bbox
+    ? [bbox.minLng.toFixed(3), bbox.minLat.toFixed(3), bbox.maxLng.toFixed(3), bbox.maxLat.toFixed(3)]
+    : null
+  return useQuery({
+    enabled: !!bbox,
+    queryKey: ['issues-bbox', k, filters.categoryId ?? null, filters.status ?? null],
+    placeholderData: (prev) => prev, // keep current markers visible while panning
+    queryFn: async (): Promise<IssueView[]> => {
+      const { data, error } = await supabase.rpc('issues_in_bbox', {
+        min_lng: bbox!.minLng,
+        min_lat: bbox!.minLat,
+        max_lng: bbox!.maxLng,
+        max_lat: bbox!.maxLat,
+        p_status: filters.status ?? undefined,
+        p_category: filters.categoryId ?? undefined,
+        p_limit: 400,
+      })
+      if (error) throw error
+      return (data ?? []) as IssueView[]
+    },
+  })
+}
+
 export function useIssue(id: string | undefined) {
   return useQuery({
     enabled: !!id,

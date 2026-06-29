@@ -10,6 +10,7 @@ export function useRealtimeIssues() {
       .channel('issues-stream')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, () => {
         qc.invalidateQueries({ queryKey: ['issues'] })
+        qc.invalidateQueries({ queryKey: ['issues-bbox'] })
       })
       .subscribe()
     return () => {

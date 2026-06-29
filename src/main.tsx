@@ -6,6 +6,7 @@ import './index.css'
 import './lib/i18n'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/AuthProvider.tsx'
+import { ErrorBoundary } from './components/layout/ErrorBoundary.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,12 +16,14 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

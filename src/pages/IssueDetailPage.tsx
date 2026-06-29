@@ -131,6 +131,7 @@ export function IssueDetailPage() {
                 confirmCount={issue.confirm_count ?? 0}
                 voted={voted}
                 confirmed={confirmed}
+                confirmDisabled={!!session && session.user.id === issue.reporter_id}
                 onVote={() => requireAuthThen(() => vote.mutate({ userId: session!.user.id, active: voted }))}
                 onConfirm={() => requireAuthThen(() => confirm.mutate({ userId: session!.user.id, active: confirmed }))}
               />

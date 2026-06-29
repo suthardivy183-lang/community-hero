@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Map as MapIcon, Flame, SlidersHorizontal, LocateFixed } from 'lucide-react'
-import { useIssues, useCategories } from '@/features/issues/queries'
+import { useIssuesInBbox, useCategories, type Bbox } from '@/features/issues/queries'
 import { useRealtimeIssues } from '@/hooks/useRealtimeIssues'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { IssueMap } from '@/components/map/IssueMap'
@@ -21,9 +21,11 @@ export function HomePage() {
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [status, setStatus] = useState<IssueStatus | null>(null)
   const [mapMode, setMapMode] = useState<'pins' | 'heat'>('pins')
+  const [bbox, setBbox] = useState<Bbox | null>(null)
 
   const { data: categories } = useCategories()
-  const { data: issues, isLoading } = useIssues({ categoryId, status })
+  // Only load issues within the current map viewport (scales to any city size).
+  const { data: issues } = useIssuesInBbox(bbox, { categoryId, status })
 
   const stats = useMemo(() => {
     const list = issues ?? []
@@ -73,9 +75,9 @@ export function HomePage() {
       {/* Map + feed */}
       <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1.15fr]">
         <section className="order-2 lg:order-1">
-          {isLoading ? (
+          {!issues ? (
             <div className="grid h-64 place-items-center"><Spinner /></div>
-          ) : issues && issues.length > 0 ? (
+          ) : issues.length > 0 ? (
             <div className="space-y-3">
               {issues.map((issue) => (
                 <IssueCard key={issue.id} issue={issue} />
@@ -103,6 +105,7 @@ export function HomePage() {
                 center={coords}
                 mode={mapMode}
                 onSelect={(id) => navigate(`/issue/${id}`)}
+                onBoundsChange={setBbox}
               />
             </div>
           </div>

@@ -1015,6 +1015,51 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
       is_staff: { Args: never; Returns: boolean }
+      issues_in_bbox: {
+        Args: {
+          max_lat: number
+          max_lng: number
+          min_lat: number
+          min_lng: number
+          p_category?: string
+          p_limit?: number
+          p_status?: string
+        }
+        Returns: {
+          acknowledged_at: string | null
+          address: string | null
+          ai_meta: Json | null
+          category_icon: string | null
+          category_id: string | null
+          category_name: string | null
+          category_slug: string | null
+          closed_at: string | null
+          comment_count: number | null
+          confirm_count: number | null
+          created_at: string | null
+          department_id: string | null
+          department_name: string | null
+          description: string | null
+          id: string | null
+          lat: number | null
+          lng: number | null
+          reporter_avatar: string | null
+          reporter_id: string | null
+          reporter_name: string | null
+          resolved_at: string | null
+          severity: number | null
+          status: Database["public"]["Enums"]["issue_status"] | null
+          tags: string[] | null
+          title: string | null
+          vote_count: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "issues_view"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       longtransactionsenabled: { Args: never; Returns: boolean }
       nearby_issues: {
         Args: {

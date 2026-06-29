@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import 'leaflet.heat'
 import { STATUS_META, type IssueView } from '@/lib/issues'
+import type { Bbox } from '@/features/issues/queries'
 import { DEFAULT_CENTER, type Coords } from '@/hooks/useGeolocation'
 
 interface IssueMapProps {
@@ -11,7 +12,26 @@ interface IssueMapProps {
   center?: Coords | null
   mode?: 'pins' | 'heat'
   onSelect?: (id: string) => void
+  onBoundsChange?: (bbox: Bbox) => void
   className?: string
+}
+
+function boundsToBbox(map: L.Map): Bbox {
+  const b = map.getBounds()
+  return { minLng: b.getWest(), minLat: b.getSouth(), maxLng: b.getEast(), maxLat: b.getNorth() }
+}
+
+function BoundsEmitter({ onChange }: { onChange?: (b: Bbox) => void }) {
+  const map = useMap()
+  useEffect(() => {
+    if (onChange) onChange(boundsToBbox(map))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useMapEvents({
+    moveend: () => onChange && onChange(boundsToBbox(map)),
+    zoomend: () => onChange && onChange(boundsToBbox(map)),
+  })
+  return null
 }
 
 function statusColor(status: IssueView['status']): string {
@@ -59,7 +79,7 @@ function Recenter({ center }: { center: Coords }) {
   return null
 }
 
-export function IssueMap({ issues, center, mode = 'pins', onSelect, className }: IssueMapProps) {
+export function IssueMap({ issues, center, mode = 'pins', onSelect, onBoundsChange, className }: IssueMapProps) {
   const start = center ?? DEFAULT_CENTER
   const located = issues.filter((i) => i.lat != null && i.lng != null)
 
@@ -89,6 +109,7 @@ export function IssueMap({ issues, center, mode = 'pins', onSelect, className }:
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {center ? <Recenter center={center} /> : null}
+      <BoundsEmitter onChange={onBoundsChange} />
       {mode === 'heat' ? (
         <HeatLayer issues={located} />
       ) : (
