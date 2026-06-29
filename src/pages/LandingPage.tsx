@@ -127,7 +127,19 @@ export function LandingPage() {
       </section>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted">
-        Community Hero — Hyperlocal Problem Solver · built with AI for accountable cities
+        <p>Community Hero — Hyperlocal Problem Solver · built with AI for accountable cities</p>
+        <p className="mt-2">
+          <a
+            href="https://bfxhcevcqkoxlsqlbcny.supabase.co/functions/v1/open311"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary hover:underline"
+          >
+            Open311 API
+          </a>
+          <span className="mx-2">·</span>
+          <span>Integration-ready for municipal 311 systems</span>
+        </p>
       </footer>
     </div>
   )
