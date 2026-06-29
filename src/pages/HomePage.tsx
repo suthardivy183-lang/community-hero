@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Map as MapIcon, Flame, SlidersHorizontal, LocateFixed } from 'lucide-react'
-import { useIssuesInBbox, useCategories, type Bbox } from '@/features/issues/queries'
+import { Map as MapIcon, Flame, SlidersHorizontal, LocateFixed, Search, X } from 'lucide-react'
+import { useIssuesInBbox, useSearchIssues, useCategories, type Bbox } from '@/features/issues/queries'
 import { useRealtimeIssues } from '@/hooks/useRealtimeIssues'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { IssueMap } from '@/components/map/IssueMap'
@@ -22,10 +22,15 @@ export function HomePage() {
   const [status, setStatus] = useState<IssueStatus | null>(null)
   const [mapMode, setMapMode] = useState<'pins' | 'heat'>('pins')
   const [bbox, setBbox] = useState<Bbox | null>(null)
+  const [search, setSearch] = useState('')
+  const searching = search.trim().length >= 2
 
   const { data: categories } = useCategories()
-  // Only load issues within the current map viewport (scales to any city size).
-  const { data: issues } = useIssuesInBbox(bbox, { categoryId, status })
+  // Default: load only issues within the current map viewport (scales to any city size).
+  const { data: bboxIssues } = useIssuesInBbox(bbox, { categoryId, status })
+  // When the search box is active, switch to a keyword query across all issues.
+  const { data: searchIssues } = useSearchIssues(search, { categoryId, status })
+  const issues = searching ? searchIssues : bboxIssues
 
   const stats = useMemo(() => {
     const list = issues ?? []
@@ -51,8 +56,29 @@ export function HomePage() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="mt-5">
+        <div className="relative max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search issues by title or description…"
+            className="w-full rounded-xl border border-border-strong bg-surface py-2.5 pl-9 pr-9 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          {search ? (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted hover:text-ink" aria-label="Clear search">
+              <X className="size-4" />
+            </button>
+          ) : null}
+        </div>
+        {searching ? (
+          <p className="mt-1.5 text-xs text-muted">Showing keyword matches across all areas.</p>
+        ) : null}
+      </div>
+
       {/* Filters */}
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
           <SlidersHorizontal className="size-3.5" /> {t('home.filter')}
         </span>

@@ -51,7 +51,10 @@ export function useIssues(filters: IssueFilters = {}) {
       if (filters.status) q = q.eq('status', filters.status)
       if (filters.reporterId) q = q.eq('reporter_id', filters.reporterId)
       if (filters.departmentId) q = q.eq('department_id', filters.departmentId)
-      if (filters.search) q = q.ilike('title', `%${filters.search}%`)
+      if (filters.search) {
+        const s = filters.search.replace(/[%,()]/g, ' ').trim()
+        if (s) q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%`)
+      }
       const { data, error } = await q.limit(500)
       if (error) throw error
       return data
@@ -95,6 +98,32 @@ export function useIssuesInBbox(
       })
       if (error) throw error
       return (data ?? []) as IssueView[]
+    },
+  })
+}
+
+/** Keyword search across title + description (used when the search box is active). */
+export function useSearchIssues(
+  search: string,
+  filters: { categoryId?: string | null; status?: IssueStatus | null } = {},
+) {
+  const s = search.trim()
+  return useQuery({
+    enabled: s.length >= 2,
+    queryKey: ['issues-search', s, filters.categoryId ?? null, filters.status ?? null],
+    queryFn: async (): Promise<IssueView[]> => {
+      const safe = s.replace(/[%,()]/g, ' ').trim()
+      let q = supabase
+        .from('issues_view')
+        .select('*')
+        .or(`title.ilike.%${safe}%,description.ilike.%${safe}%`)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (filters.categoryId) q = q.eq('category_id', filters.categoryId)
+      if (filters.status) q = q.eq('status', filters.status)
+      const { data, error } = await q
+      if (error) throw error
+      return data
     },
   })
 }

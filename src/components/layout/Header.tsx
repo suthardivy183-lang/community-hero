@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { ROLE_LABELS, LANGUAGE_LABELS, type AppLanguage } from '@/lib/issues'
 import { setLanguage } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
+import { NotificationBell } from './NotificationBell'
 import { cn } from '@/lib/utils'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -53,6 +54,7 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <NotificationBell />
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="grid size-9 place-items-center rounded-lg border border-border bg-surface text-ink-soft transition-colors hover:border-border-strong" aria-label="Language">

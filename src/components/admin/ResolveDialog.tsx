@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useIssueMedia } from '@/features/issues/queries'
 import { useResolveWithProof, type ResolveResult } from '@/features/admin/mutations'
 import { mediaUrl } from '@/lib/supabase'
-import { processImage, type ProcessedImage } from '@/lib/image'
+import { processImage, type ProcessedMedia } from '@/lib/image'
 import type { IssueView } from '@/lib/issues'
 import { Button } from '@/components/ui/Button'
 
@@ -20,10 +20,10 @@ export function ResolveDialog({ issue, open, onOpenChange }: ResolveDialogProps)
   const { data: media } = useIssueMedia(issue.id as string)
   const resolve = useResolveWithProof()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [photo, setPhoto] = useState<ProcessedImage | null>(null)
+  const [photo, setPhoto] = useState<ProcessedMedia | null>(null)
   const [result, setResult] = useState<ResolveResult | null>(null)
 
-  const original = media?.find((m) => m.kind === 'original')
+  const original = media?.find((m) => m.kind === 'original' && m.type === 'photo')
 
   async function handleFile(file: File) {
     setPhoto(await processImage(file))
@@ -37,7 +37,7 @@ export function ResolveDialog({ issue, open, onOpenChange }: ResolveDialogProps)
       category: issue.category_name ?? 'general',
       beforeUrl: original ? mediaUrl(original.storage_path) : null,
       beforeMediaId: original?.id ?? null,
-      blob: photo.blob,
+      blob: photo.uploadBlob,
       validatorId: session.user.id,
     })
     setResult(res)

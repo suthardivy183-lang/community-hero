@@ -41,7 +41,8 @@ export function IssueDetailPage() {
 
   const voted = interactions?.votes.has(issue.id as string) ?? false
   const confirmed = interactions?.confirmations.has(issue.id as string) ?? false
-  const original = media?.find((m) => m.kind === 'original')
+  const originalVideo = media?.find((m) => m.type === 'video')
+  const originalPhoto = media?.find((m) => m.kind === 'original' && m.type === 'photo')
   const resolution = media?.find((m) => m.kind === 'resolution')
 
   function requireAuthThen(fn: () => void) {
@@ -58,9 +59,13 @@ export function IssueDetailPage() {
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-5">
           {/* Media */}
-          {original ? (
+          {originalVideo ? (
             <div className="overflow-hidden rounded-[var(--radius-card)] border border-border shadow-[var(--shadow-card)]">
-              <img src={mediaUrl(original.storage_path)} alt={issue.title ?? ''} className="aspect-video w-full object-cover" />
+              <video src={mediaUrl(originalVideo.storage_path)} controls playsInline poster={originalPhoto ? mediaUrl(originalPhoto.storage_path) : undefined} className="aspect-video w-full bg-ink object-contain" />
+            </div>
+          ) : originalPhoto ? (
+            <div className="overflow-hidden rounded-[var(--radius-card)] border border-border shadow-[var(--shadow-card)]">
+              <img src={mediaUrl(originalPhoto.storage_path)} alt={issue.title ?? ''} className="aspect-video w-full object-cover" />
             </div>
           ) : null}
 

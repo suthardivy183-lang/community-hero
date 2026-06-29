@@ -6,7 +6,7 @@ import { useCategories } from '@/features/issues/queries'
 import { useNearbyIssues } from '@/features/issues/nearby'
 import { useCreateIssue } from '@/features/issues/mutations'
 import { supabase } from '@/lib/supabase'
-import { processImage, type ProcessedImage } from '@/lib/image'
+import { processMedia, type ProcessedMedia } from '@/lib/image'
 import { analyzeReport } from '@/lib/ai'
 import { reverseGeocode } from '@/lib/geocode'
 import { useGeolocation, DEFAULT_CENTER, type Coords } from '@/hooks/useGeolocation'
@@ -24,7 +24,7 @@ export function ReportPage() {
   const { coords: geoCoords, locate } = useGeolocation()
   const createIssue = useCreateIssue()
 
-  const [image, setImage] = useState<ProcessedImage | null>(null)
+  const [media, setMedia] = useState<ProcessedMedia | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [aiUsed, setAiUsed] = useState(false)
 
@@ -57,14 +57,20 @@ export function ReportPage() {
 
   async function handleFile(file: File) {
     setError(null)
-    const processed = await processImage(file)
-    setImage(processed)
+    let processed: ProcessedMedia
+    try {
+      processed = await processMedia(file)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read that file.')
+      return
+    }
+    setMedia(processed)
     setAnalyzing(true)
     try {
       const slugs = (categories ?? []).map((c) => c.slug)
       const result = await analyzeReport({
-        imageBase64: processed.base64,
-        mimeType: processed.mimeType,
+        imageBase64: processed.analysisBase64,
+        mimeType: 'image/jpeg',
         hintCategorySlugs: slugs,
       })
       const matched = categories?.find((c) => c.slug === result.categorySlug)
@@ -91,7 +97,7 @@ export function ReportPage() {
     e.preventDefault()
     setError(null)
     if (!session) return
-    if (!image) return setError('Please add a photo of the issue.')
+    if (!media) return setError('Please add a photo or video of the issue.')
     if (!categoryId) return setError('Please choose a category.')
     if (!title.trim()) return setError('Please add a short title.')
 
@@ -106,7 +112,13 @@ export function ReportPage() {
         address,
         tags,
         aiMeta: { aiGenerated: aiUsed, tags },
-        blob: image.blob,
+        media: {
+          uploadBlob: media.uploadBlob,
+          mimeType: media.mimeType,
+          ext: media.ext,
+          kind: media.kind,
+          posterBlob: media.posterBlob,
+        },
         uploaderId: session.user.id,
       })
       navigate(`/issue/${id}`)
@@ -129,25 +141,29 @@ export function ReportPage() {
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               capture="environment"
               className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
             />
-            {image ? (
+            {media ? (
               <div className="space-y-3">
                 <div className="relative overflow-hidden rounded-xl">
-                  <img src={image.previewUrl} alt="Issue" className="aspect-video w-full object-cover" />
+                  {media.kind === 'video' ? (
+                    <video src={media.previewUrl} controls playsInline className="aspect-video w-full bg-ink object-contain" />
+                  ) : (
+                    <img src={media.previewUrl} alt="Issue" className="aspect-video w-full object-cover" />
+                  )}
                   {analyzing ? (
                     <div className="absolute inset-0 grid place-items-center bg-ink/55 text-white backdrop-blur-sm">
                       <div className="flex items-center gap-2 text-sm font-semibold">
-                        <Loader2 className="size-5 animate-spin" /> AI is analysing the photo…
+                        <Loader2 className="size-5 animate-spin" /> AI is analysing the {media.kind}…
                       </div>
                     </div>
                   ) : null}
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                  <Camera className="size-4" /> Replace photo
+                  <Camera className="size-4" /> Replace {media.kind}
                 </Button>
               </div>
             ) : (
@@ -159,7 +175,7 @@ export function ReportPage() {
                 <span className="grid size-12 place-items-center rounded-full bg-primary-tint text-primary">
                   <Camera className="size-6" />
                 </span>
-                <span className="font-semibold text-ink">Take or upload a photo</span>
+                <span className="font-semibold text-ink">Take or upload a photo or video</span>
                 <span className="text-sm text-muted">AI auto-detects the category, writes the report & scores severity</span>
               </button>
             )}

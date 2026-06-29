@@ -21,6 +21,14 @@ export async function uploadIssuePhoto(
   return path
 }
 
+export interface CreateIssueMedia {
+  uploadBlob: Blob
+  mimeType: string
+  ext: string
+  kind: 'photo' | 'video'
+  posterBlob?: Blob
+}
+
 export interface CreateIssueInput {
   title: string
   description: string
@@ -31,8 +39,13 @@ export interface CreateIssueInput {
   address: string | null
   tags: string[]
   aiMeta: Record<string, unknown>
-  blob: Blob
+  media: CreateIssueMedia
   uploaderId: string
+}
+
+async function uploadBlob(blob: Blob, path: string, contentType: string): Promise<void> {
+  const { error } = await supabase.storage.from('issue-media').upload(path, blob, { contentType, upsert: true })
+  if (error) throw error
 }
 
 export function useCreateIssue() {
@@ -52,16 +65,31 @@ export function useCreateIssue() {
       })
       if (error) throw error
 
-      const path = await uploadIssuePhoto(input.blob, input.uploaderId, issueId, 'original')
+      const { media, uploaderId } = input
+      const path = `${uploaderId}/${issueId}/original-${Date.now()}.${media.ext}`
+      await uploadBlob(media.uploadBlob, path, media.mimeType)
       const { error: mediaErr } = await supabase.from('issue_media').insert({
         issue_id: issueId,
-        uploader_id: input.uploaderId,
+        uploader_id: uploaderId,
         kind: 'original',
-        type: 'photo',
+        type: media.kind,
         storage_path: path,
         ai_analysis: input.aiMeta as never,
       })
       if (mediaErr) throw mediaErr
+
+      // For video, also store the poster frame as a photo (thumbnail + AI fix validation).
+      if (media.kind === 'video' && media.posterBlob) {
+        const posterPath = `${uploaderId}/${issueId}/poster-${Date.now()}.jpg`
+        await uploadBlob(media.posterBlob, posterPath, 'image/jpeg')
+        await supabase.from('issue_media').insert({
+          issue_id: issueId,
+          uploader_id: uploaderId,
+          kind: 'original',
+          type: 'photo',
+          storage_path: posterPath,
+        })
+      }
       return issueId
     },
     onSuccess: () => {
