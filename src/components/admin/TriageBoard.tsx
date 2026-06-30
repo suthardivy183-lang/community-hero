@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { CheckCircle2, ExternalLink } from 'lucide-react'
 import type { IssueView } from '@/lib/issues'
 import { NEXT_STATUSES, STATUS_META } from '@/lib/issues'
+import { computePriority } from '@/lib/priority'
+import { PriorityBadge } from '@/components/issue/PriorityBadge'
 import { useChangeStatus } from '@/features/issues/mutations'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -13,8 +15,8 @@ import { ResolveDialog } from './ResolveDialog'
 import { timeAgo } from '@/lib/utils'
 
 export function TriageBoard({ issues }: { issues: IssueView[] }) {
-  // Sort by urgency: severity desc, then newest.
-  const ordered = [...issues].sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0))
+  // Sort by AI priority score (severity + community + context + age + emergency).
+  const ordered = [...issues].sort((a, b) => computePriority(b).score - computePriority(a).score)
   return (
     <div className="space-y-2.5">
       {ordered.map((issue) => (
@@ -50,6 +52,7 @@ function TriageRow({ issue }: { issue: IssueView }) {
         </div>
       </div>
 
+      <PriorityBadge issue={issue} />
       <StatusBadge status={status} />
 
       <div className="flex items-center gap-2">

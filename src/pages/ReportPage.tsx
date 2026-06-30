@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCategories } from '@/features/issues/queries'
-import { useNearbyIssues } from '@/features/issues/nearby'
+import { useSimilarIssues } from '@/features/issues/nearby'
 import { useCreateIssue } from '@/features/issues/mutations'
 import { supabase } from '@/lib/supabase'
 import { processMedia, type ProcessedMedia } from '@/lib/image'
-import { analyzeReport } from '@/lib/ai'
+import { analyzeReport, embedText, type IssueContext } from '@/lib/ai'
+import { fetchContext } from '@/lib/context'
 import { reverseGeocode } from '@/lib/geocode'
 import { useGeolocation, DEFAULT_CENTER, type Coords } from '@/hooks/useGeolocation'
 import { LocationPicker } from '@/components/map/LocationPicker'
@@ -32,28 +33,42 @@ export function ReportPage() {
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState<string>('')
   const [severity, setSeverity] = useState(5)
+  const [severityScore, setSeverityScore] = useState<number | null>(null)
+  const [severityFactors, setSeverityFactors] = useState<Record<string, number>>({})
+  const [confidence, setConfidence] = useState<number | null>(null)
+  const [departmentName, setDepartmentName] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>([])
+  const [embedding, setEmbedding] = useState<number[]>([])
 
   const [coords, setCoords] = useState<Coords>(DEFAULT_CENTER)
   const [address, setAddress] = useState<string | null>(null)
   const [geocoding, setGeocoding] = useState(false)
+  const [context, setContext] = useState<IssueContext>({})
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { locate() }, [locate])
   useEffect(() => { if (geoCoords) setCoords(geoCoords) }, [geoCoords])
 
-  // Reverse-geocode whenever the pin moves.
+  // Reverse-geocode + fetch civic context (hospital/school/road) whenever the pin moves.
   useEffect(() => {
     let cancelled = false
     setGeocoding(true)
     reverseGeocode(coords.lat, coords.lng).then((addr) => {
       if (!cancelled) { setAddress(addr); setGeocoding(false) }
     })
+    fetchContext(coords.lat, coords.lng).then((ctx) => {
+      if (!cancelled) setContext(ctx)
+    })
     return () => { cancelled = true }
   }, [coords])
 
-  const { data: nearby } = useNearbyIssues(coords, categoryId || null)
+  const { data: similar } = useSimilarIssues({
+    coords,
+    categoryId: categoryId || null,
+    embedding,
+    imageHash: media?.imageHash,
+  })
 
   async function handleFile(file: File) {
     setError(null)
@@ -72,14 +87,21 @@ export function ReportPage() {
         imageBase64: processed.analysisBase64,
         mimeType: 'image/jpeg',
         hintCategorySlugs: slugs,
+        context,
       })
       const matched = categories?.find((c) => c.slug === result.categorySlug)
       if (matched) setCategoryId(matched.id)
       setTitle(result.title)
       setDescription(result.description)
       setSeverity(result.severity)
+      setSeverityScore(result.severityScore ?? result.severity * 10)
+      setSeverityFactors(result.severityFactors ?? {})
+      setConfidence(result.confidence ?? null)
+      setDepartmentName(result.departmentName ?? null)
       setTags(result.tags)
       setAiUsed(true)
+      // Embed the description for duplicate-detection (empty when AI offline).
+      embedText(`${result.title}. ${result.description}`).then(setEmbedding)
     } catch {
       setError('AI analysis is unavailable right now — please fill the details manually.')
     } finally {
@@ -107,11 +129,18 @@ export function ReportPage() {
         description: description.trim(),
         categoryId,
         severity,
+        severityScore,
+        severityFactors,
+        nearHospital: context.nearHospital,
+        nearSchool: context.nearSchool,
+        roadClass: context.roadClass ?? null,
+        embedding,
+        imageHash: media.imageHash,
         lat: coords.lat,
         lng: coords.lng,
         address,
         tags,
-        aiMeta: { aiGenerated: aiUsed, tags },
+        aiMeta: { aiGenerated: aiUsed, confidence, departmentName, tags },
         media: {
           uploadBlob: media.uploadBlob,
           mimeType: media.mimeType,
@@ -183,23 +212,29 @@ export function ReportPage() {
         </Card>
 
         {aiUsed ? (
-          <div className="flex items-center gap-2 rounded-xl bg-status-validated/10 px-3.5 py-2 text-sm font-medium text-status-validated">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-status-validated/10 px-3.5 py-2 text-sm font-medium text-status-validated">
             <Sparkles className="size-4" /> AI pre-filled these details — edit anything that's off.
+            {confidence != null ? (
+              <span className="rounded-full bg-status-validated/15 px-2 py-0.5 text-xs font-bold">{Math.round(confidence * 100)}% confident</span>
+            ) : null}
+            {departmentName ? (
+              <span className="rounded-full bg-primary-tint px-2 py-0.5 text-xs font-semibold text-primary">→ {departmentName}</span>
+            ) : null}
           </div>
         ) : null}
 
-        {/* Nearby duplicates */}
-        {nearby && nearby.length > 0 ? (
+        {/* AI duplicate detection */}
+        {similar && similar.length > 0 ? (
           <Card className="border-accent/40 bg-accent/5">
             <CardBody>
               <div className="mb-2 flex items-center gap-2 font-semibold text-accent-fg">
-                <Users className="size-4" /> Already reported near here?
+                <Users className="size-4" /> Similar issue already reported nearby
               </div>
               <p className="mb-3 text-sm text-ink-soft">
-                Confirm an existing report instead of creating a duplicate — it boosts its priority.
+                Join an existing report instead of creating a duplicate — it boosts its supporter count & priority.
               </p>
               <div className="space-y-2">
-                {nearby.slice(0, 3).map((n) => (
+                {similar.slice(0, 3).map((n) => (
                   <button
                     key={n.id}
                     type="button"
@@ -208,14 +243,17 @@ export function ReportPage() {
                   >
                     <div className="min-w-0">
                       <p className="line-clamp-1 text-sm font-medium">{n.title}</p>
-                      <p className="text-xs text-muted">{formatDistance(n.distance_m)} · {n.confirm_count} confirms</p>
+                      <p className="text-xs text-muted">
+                        {Math.round(n.similarity)}% similar · {formatDistance(n.distance_m)} · {n.confirm_count} supporters
+                      </p>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent-fg">
-                      I've seen this <ArrowRight className="size-3.5" />
+                      Join <ArrowRight className="size-3.5" />
                     </span>
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-muted">Not the same? Just submit below to create a new report.</p>
             </CardBody>
           </Card>
         ) : null}

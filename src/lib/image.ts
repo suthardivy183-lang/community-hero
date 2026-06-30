@@ -11,8 +11,31 @@ export interface ProcessedMedia {
   previewUrl: string
   /** A jpeg frame used for AI vision analysis (the photo itself, or a video poster). */
   analysisBase64: string
+  /** 64-bit average-hash (hex) for perceptual image-similarity comparison. */
+  imageHash: string
   /** For video: the poster jpeg, also stored as a photo for thumbnails + AI validation. */
   posterBlob?: Blob
+}
+
+/** 64-bit perceptual average-hash (hex) of a canvas frame. */
+function averageHash(src: HTMLCanvasElement): string {
+  const c = document.createElement('canvas')
+  c.width = 8
+  c.height = 8
+  const ctx = c.getContext('2d')
+  if (!ctx) return ''
+  ctx.drawImage(src, 0, 0, 8, 8)
+  const d = ctx.getImageData(0, 0, 8, 8).data
+  const gray: number[] = []
+  for (let i = 0; i < 64; i++) gray.push((d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3)
+  const avg = gray.reduce((a, b) => a + b, 0) / 64
+  let hex = ''
+  for (let i = 0; i < 64; i += 4) {
+    let nibble = 0
+    for (let j = 0; j < 4; j++) nibble = (nibble << 1) | (gray[i + j] >= avg ? 1 : 0)
+    hex += nibble.toString(16)
+  }
+  return hex
 }
 
 /** Dispatch on file type. */
@@ -35,6 +58,7 @@ export async function processImage(file: File): Promise<ProcessedMedia> {
 
   const blob = await canvasToBlob(canvas)
   const base64 = await blobToBase64(blob)
+  const imageHash = averageHash(canvas)
   return {
     kind: 'photo',
     uploadBlob: blob,
@@ -42,6 +66,7 @@ export async function processImage(file: File): Promise<ProcessedMedia> {
     ext: 'jpg',
     previewUrl: URL.createObjectURL(blob),
     analysisBase64: base64,
+    imageHash,
   }
 }
 
@@ -60,11 +85,12 @@ export async function processVideo(file: File): Promise<ProcessedMedia> {
     ext,
     previewUrl,
     analysisBase64: poster.base64,
+    imageHash: poster.hash,
     posterBlob: poster.blob,
   }
 }
 
-async function extractPosterFrame(url: string): Promise<{ blob: Blob; base64: string }> {
+async function extractPosterFrame(url: string): Promise<{ blob: Blob; base64: string; hash: string }> {
   const video = document.createElement('video')
   video.src = url
   video.muted = true
@@ -91,7 +117,7 @@ async function extractPosterFrame(url: string): Promise<{ blob: Blob; base64: st
 
   const blob = await canvasToBlob(canvas)
   const base64 = await blobToBase64(blob)
-  return { blob, base64 }
+  return { blob, base64, hash: averageHash(canvas) }
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {

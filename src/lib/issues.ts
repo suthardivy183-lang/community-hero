@@ -51,6 +51,28 @@ export function severityLabel(severity: number): string {
   return 'Critical'
 }
 
+/** 0–100 severity → label + design-token tone (reuses the sev-* ramp). */
+export function severityScoreLevel(score: number): { label: string; tone: string } {
+  if (score < 40) return { label: 'Low', tone: 'sev-low' }
+  if (score < 70) return { label: 'Medium', tone: 'sev-mid' }
+  if (score < 90) return { label: 'High', tone: 'sev-high' }
+  return { label: 'Critical', tone: 'sev-high' }
+}
+
+export interface TrustTier {
+  label: string
+  /** Hex/oklch color for the tier badge. */
+  color: string
+}
+
+/** 0–100 trust → Bronze / Silver / Gold / Hero. */
+export function trustTier(score: number): TrustTier {
+  if (score < 40) return { label: 'Bronze', color: 'oklch(58% 0.09 50)' }
+  if (score < 70) return { label: 'Silver', color: 'oklch(72% 0.02 265)' }
+  if (score < 85) return { label: 'Gold', color: 'oklch(78% 0.14 85)' }
+  return { label: 'Hero', color: 'var(--color-primary)' }
+}
+
 export const ROLE_LABELS: Record<UserRole, string> = {
   citizen: 'Citizen',
   authority: 'Authority',

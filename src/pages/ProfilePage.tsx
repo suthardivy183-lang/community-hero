@@ -5,6 +5,7 @@ import { useIssues } from '@/features/issues/queries'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
 import { Avatar } from '@/components/layout/Header'
+import { TrustBadge } from '@/components/community/TrustBadge'
 import { IssueCard } from '@/components/issue/IssueCard'
 import { ROLE_LABELS } from '@/lib/issues'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ export function ProfilePage() {
           <div className="flex-1">
             <h1 className="font-display text-2xl font-semibold">{profile.full_name ?? 'Citizen'}</h1>
             <p className="text-sm text-muted">{ROLE_LABELS[profile.role]}</p>
+            <div className="mt-1.5"><TrustBadge score={profile.trust_score ?? 50} /></div>
           </div>
           <div className="text-right">
             <div className="font-mono text-3xl font-bold text-primary">{profile.points}</div>

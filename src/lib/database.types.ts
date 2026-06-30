@@ -295,11 +295,18 @@ export type Database = {
           created_at: string
           department_id: string | null
           description: string
+          embedding: string | null
           geom: unknown
           id: string
+          image_hash: string | null
+          near_hospital: boolean
+          near_school: boolean
           reporter_id: string
           resolved_at: string | null
+          road_class: string | null
           severity: number
+          severity_factors: Json
+          severity_score: number | null
           status: Database["public"]["Enums"]["issue_status"]
           tags: string[]
           title: string
@@ -316,11 +323,18 @@ export type Database = {
           created_at?: string
           department_id?: string | null
           description?: string
+          embedding?: string | null
           geom: unknown
           id?: string
+          image_hash?: string | null
+          near_hospital?: boolean
+          near_school?: boolean
           reporter_id: string
           resolved_at?: string | null
+          road_class?: string | null
           severity?: number
+          severity_factors?: Json
+          severity_score?: number | null
           status?: Database["public"]["Enums"]["issue_status"]
           tags?: string[]
           title: string
@@ -337,11 +351,18 @@ export type Database = {
           created_at?: string
           department_id?: string | null
           description?: string
+          embedding?: string | null
           geom?: unknown
           id?: string
+          image_hash?: string | null
+          near_hospital?: boolean
+          near_school?: boolean
           reporter_id?: string
           resolved_at?: string | null
+          road_class?: string | null
           severity?: number
+          severity_factors?: Json
+          severity_score?: number | null
           status?: Database["public"]["Enums"]["issue_status"]
           tags?: string[]
           title?: string
@@ -433,6 +454,7 @@ export type Database = {
           language: Database["public"]["Enums"]["app_language"]
           points: number
           role: Database["public"]["Enums"]["user_role"]
+          trust_score: number
         }
         Insert: {
           avatar_url?: string | null
@@ -443,6 +465,7 @@ export type Database = {
           language?: Database["public"]["Enums"]["app_language"]
           points?: number
           role?: Database["public"]["Enums"]["user_role"]
+          trust_score?: number
         }
         Update: {
           avatar_url?: string | null
@@ -453,6 +476,7 @@ export type Database = {
           language?: Database["public"]["Enums"]["app_language"]
           points?: number
           role?: Database["public"]["Enums"]["user_role"]
+          trust_score?: number
         }
         Relationships: [
           {
@@ -748,11 +772,17 @@ export type Database = {
           id: string | null
           lat: number | null
           lng: number | null
+          near_hospital: boolean | null
+          near_school: boolean | null
           reporter_avatar: string | null
           reporter_id: string | null
           reporter_name: string | null
+          reporter_trust: number | null
           resolved_at: string | null
+          road_class: string | null
           severity: number | null
+          severity_factors: Json | null
+          severity_score: number | null
           status: Database["public"]["Enums"]["issue_status"] | null
           tags: string[] | null
           title: string | null
@@ -911,6 +941,10 @@ export type Database = {
             }
             Returns: string
           }
+      adjust_trust: {
+        Args: { delta: number; target: string }
+        Returns: undefined
+      }
       award_points: {
         Args: { amount: number; target: string }
         Returns: undefined
@@ -923,7 +957,12 @@ export type Database = {
           p_description: string
           p_lat: number
           p_lng: number
+          p_near_hospital?: boolean
+          p_near_school?: boolean
+          p_road_class?: string
           p_severity: number
+          p_severity_factors?: Json
+          p_severity_score?: number
           p_tags?: string[]
           p_title: string
         }
@@ -1095,11 +1134,17 @@ export type Database = {
           id: string | null
           lat: number | null
           lng: number | null
+          near_hospital: boolean | null
+          near_school: boolean | null
           reporter_avatar: string | null
           reporter_id: string | null
           reporter_name: string | null
+          reporter_trust: number | null
           resolved_at: string | null
+          road_class: string | null
           severity: number | null
+          severity_factors: Json | null
+          severity_score: number | null
           status: Database["public"]["Enums"]["issue_status"] | null
           tags: string[] | null
           title: string | null
@@ -1172,6 +1217,10 @@ export type Database = {
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
       run_escalations: { Args: never; Returns: number }
+      set_issue_vectors: {
+        Args: { p_embedding?: number[]; p_id: string; p_image_hash?: string }
+        Returns: undefined
+      }
       set_user_role: {
         Args: {
           dept?: string
@@ -1179,6 +1228,27 @@ export type Database = {
           target: string
         }
         Returns: undefined
+      }
+      similar_issues: {
+        Args: {
+          p_category?: string
+          p_embedding?: number[]
+          p_image_hash?: string
+          p_lat: number
+          p_lng: number
+          p_radius_m?: number
+        }
+        Returns: {
+          category_id: string
+          confirm_count: number
+          created_at: string
+          distance_m: number
+          id: string
+          similarity: number
+          status: Database["public"]["Enums"]["issue_status"]
+          title: string
+          vote_count: number
+        }[]
       }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }

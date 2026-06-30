@@ -34,6 +34,13 @@ export interface CreateIssueInput {
   description: string
   categoryId: string
   severity: number
+  severityScore?: number | null
+  severityFactors?: Record<string, number>
+  nearHospital?: boolean
+  nearSchool?: boolean
+  roadClass?: string | null
+  embedding?: number[]
+  imageHash?: string
   lat: number
   lng: number
   address: string | null
@@ -62,8 +69,22 @@ export function useCreateIssue() {
         p_address: input.address ?? undefined,
         p_tags: input.tags,
         p_ai_meta: input.aiMeta as never,
+        p_severity_score: input.severityScore ?? undefined,
+        p_near_hospital: input.nearHospital ?? false,
+        p_near_school: input.nearSchool ?? false,
+        p_road_class: input.roadClass ?? undefined,
+        p_severity_factors: (input.severityFactors ?? {}) as never,
       })
       if (error) throw error
+
+      // Persist similarity vectors (embedding + perceptual hash) for dedup.
+      if ((input.embedding && input.embedding.length) || input.imageHash) {
+        await supabase.rpc('set_issue_vectors', {
+          p_id: issueId,
+          p_embedding: input.embedding && input.embedding.length ? input.embedding : undefined,
+          p_image_hash: input.imageHash ?? undefined,
+        })
+      }
 
       const { media, uploaderId } = input
       const path = `${uploaderId}/${issueId}/original-${Date.now()}.${media.ext}`

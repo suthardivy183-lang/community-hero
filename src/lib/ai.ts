@@ -11,10 +11,21 @@ export const analysisSchema = z.object({
   title: z.string(),
   description: z.string(),
   severity: z.number().int().min(1).max(10),
+  severityScore: z.number().min(0).max(100).optional(),
+  severityFactors: z.record(z.string(), z.number()).optional(),
+  confidence: z.number().min(0).max(1).optional(),
   departmentSlug: z.string().optional(),
+  departmentName: z.string().optional(),
   tags: z.array(z.string()).default([]),
 })
 export type IssueAnalysis = z.infer<typeof analysisSchema>
+
+export interface IssueContext {
+  nearHospital?: boolean
+  nearSchool?: boolean
+  roadClass?: string
+  traffic?: string
+}
 
 export const validationSchema = z.object({
   verdict: z.enum(['genuine', 'insufficient', 'unrelated']),
@@ -38,8 +49,16 @@ export function analyzeReport(input: {
   imageBase64: string
   mimeType: string
   hintCategorySlugs: string[]
+  context?: IssueContext
 }): Promise<IssueAnalysis> {
   return invoke('ai-analyze', input, analysisSchema)
+}
+
+/** Generate a text embedding for similarity search (empty array when AI is offline). */
+export function embedText(text: string): Promise<number[]> {
+  return invoke('ai-embed', { text }, z.object({ embedding: z.array(z.number()) }))
+    .then((r) => r.embedding)
+    .catch(() => [])
 }
 
 /** Compare a before + after photo to confirm a genuine repair. */

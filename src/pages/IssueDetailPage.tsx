@@ -18,6 +18,9 @@ import { SeverityMeter } from '@/components/issue/SeverityMeter'
 import { CategoryIcon } from '@/components/issue/CategoryIcon'
 import { StaffActions } from '@/components/issue/StaffActions'
 import { VoteControls } from '@/components/issue/VoteControls'
+import { SeverityBadge } from '@/components/issue/SeverityBadge'
+import { PriorityBadge } from '@/components/issue/PriorityBadge'
+import { TrustBadge } from '@/components/community/TrustBadge'
 import { Avatar } from '@/components/layout/Header'
 import { timeAgo } from '@/lib/utils'
 
@@ -81,9 +84,27 @@ export function IssueDetailPage() {
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
               <MapPin className="size-4" /> {issue.address ?? 'Location pinned on map'}
             </p>
-            <div className="mt-3"><SeverityMeter severity={issue.severity ?? 5} /></div>
+            {issue.reporter_name ? (
+              <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+                Reported by <span className="font-medium text-ink">{issue.reporter_name}</span>
+                <TrustBadge score={issue.reporter_trust ?? 50} showScore={false} />
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {issue.severity_score != null
+                ? <SeverityBadge score={issue.severity_score} />
+                : <SeverityMeter severity={issue.severity ?? 5} />}
+            </div>
             <p className="mt-3 leading-relaxed text-ink-soft">{issue.description}</p>
           </div>
+
+          {/* AI explainable priority */}
+          <Card>
+            <CardBody>
+              <h2 className="mb-2 font-display text-lg font-semibold">AI priority</h2>
+              <PriorityBadge issue={issue} showReasons />
+            </CardBody>
+          </Card>
 
           {/* AI validation result */}
           {validation && validation.verdict !== 'pending' ? (
