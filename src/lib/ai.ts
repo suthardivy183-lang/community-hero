@@ -54,6 +54,14 @@ export function analyzeReport(input: {
   return invoke('ai-analyze', input, analysisSchema)
 }
 
+/** Extract structured issue fields from a voice transcript (EN/HI/GU). */
+export function extractFromText(input: {
+  text: string
+  hintCategorySlugs: string[]
+}): Promise<IssueAnalysis> {
+  return invoke('ai-extract-text', input, analysisSchema)
+}
+
 /** Generate a text embedding for similarity search (empty array when AI is offline). */
 export function embedText(text: string): Promise<number[]> {
   return invoke('ai-embed', { text }, z.object({ embedding: z.array(z.number()) }))

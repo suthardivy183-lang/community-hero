@@ -7,7 +7,8 @@ import { useSimilarIssues } from '@/features/issues/nearby'
 import { useCreateIssue } from '@/features/issues/mutations'
 import { supabase } from '@/lib/supabase'
 import { processMedia, type ProcessedMedia } from '@/lib/image'
-import { analyzeReport, embedText, type IssueContext } from '@/lib/ai'
+import { analyzeReport, embedText, type IssueContext, type IssueAnalysis } from '@/lib/ai'
+import { VoiceComplaint } from '@/components/report/VoiceComplaint'
 import { fetchContext } from '@/lib/context'
 import { reverseGeocode } from '@/lib/geocode'
 import { useGeolocation, DEFAULT_CENTER, type Coords } from '@/hooks/useGeolocation'
@@ -89,24 +90,27 @@ export function ReportPage() {
         hintCategorySlugs: slugs,
         context,
       })
-      const matched = categories?.find((c) => c.slug === result.categorySlug)
-      if (matched) setCategoryId(matched.id)
-      setTitle(result.title)
-      setDescription(result.description)
-      setSeverity(result.severity)
-      setSeverityScore(result.severityScore ?? result.severity * 10)
-      setSeverityFactors(result.severityFactors ?? {})
-      setConfidence(result.confidence ?? null)
-      setDepartmentName(result.departmentName ?? null)
-      setTags(result.tags)
-      setAiUsed(true)
-      // Embed the description for duplicate-detection (empty when AI offline).
-      embedText(`${result.title}. ${result.description}`).then(setEmbedding)
+      applyAnalysis(result)
     } catch {
       setError('AI analysis is unavailable right now — please fill the details manually.')
     } finally {
       setAnalyzing(false)
     }
+  }
+
+  function applyAnalysis(result: IssueAnalysis) {
+    const matched = categories?.find((c) => c.slug === result.categorySlug)
+    if (matched) setCategoryId(matched.id)
+    setTitle(result.title)
+    setDescription(result.description)
+    setSeverity(result.severity)
+    setSeverityScore(result.severityScore ?? result.severity * 10)
+    setSeverityFactors(result.severityFactors ?? {})
+    setConfidence(result.confidence ?? null)
+    if (result.departmentName) setDepartmentName(result.departmentName)
+    setTags(result.tags)
+    setAiUsed(true)
+    embedText(`${result.title}. ${result.description}`).then(setEmbedding)
   }
 
   async function confirmExisting(issueId: string) {
@@ -210,6 +214,8 @@ export function ReportPage() {
             )}
           </CardBody>
         </Card>
+
+        <VoiceComplaint categorySlugs={(categories ?? []).map((c) => c.slug)} onExtract={applyAnalysis} />
 
         {aiUsed ? (
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-status-validated/10 px-3.5 py-2 text-sm font-medium text-status-validated">

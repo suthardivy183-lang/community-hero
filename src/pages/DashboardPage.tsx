@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { LayoutDashboard, ListChecks, BarChart3, Flame } from 'lucide-react'
+import { LayoutDashboard, ListChecks, BarChart3, Flame, Route as RouteIcon, Radio } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useIssues } from '@/features/issues/queries'
 import { useRealtimeIssues } from '@/hooks/useRealtimeIssues'
 import { TriageBoard } from '@/components/admin/TriageBoard'
 import { ImpactCharts } from '@/components/admin/ImpactCharts'
 import { HotspotsPanel } from '@/components/admin/HotspotsPanel'
+import { RoutePlanner } from '@/components/admin/RoutePlanner'
+import { SocialMonitor } from '@/components/admin/SocialMonitor'
 import { EscalationBanner } from '@/components/admin/EscalationBanner'
 import { Spinner } from '@/components/ui/Spinner'
 import { ROLE_LABELS } from '@/lib/issues'
@@ -44,11 +46,15 @@ export function DashboardPage() {
             <Tabs.Trigger value="triage" className={cn(tabTrigger)}><ListChecks className="size-4" /> Triage queue</Tabs.Trigger>
             <Tabs.Trigger value="impact" className={cn(tabTrigger)}><BarChart3 className="size-4" /> Impact</Tabs.Trigger>
             <Tabs.Trigger value="map" className={cn(tabTrigger)}><Flame className="size-4" /> Hotspots</Tabs.Trigger>
+            <Tabs.Trigger value="route" className={cn(tabTrigger)}><RouteIcon className="size-4" /> Route</Tabs.Trigger>
+            <Tabs.Trigger value="social" className={cn(tabTrigger)}><Radio className="size-4" /> Social</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="triage"><TriageBoard issues={issues ?? []} /></Tabs.Content>
           <Tabs.Content value="impact"><ImpactCharts issues={issues ?? []} /></Tabs.Content>
           <Tabs.Content value="map"><HotspotsPanel issues={issues ?? []} /></Tabs.Content>
+          <Tabs.Content value="route"><RoutePlanner issues={issues ?? []} /></Tabs.Content>
+          <Tabs.Content value="social"><SocialMonitor /></Tabs.Content>
         </Tabs.Root>
         </>
       )}

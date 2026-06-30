@@ -93,6 +93,54 @@ export function clusterHotspots(issues: IssueView[]): HotspotCluster[] {
     .sort((a, b) => b.count - a.count)
 }
 
+export interface MaintenancePrediction {
+  area: string
+  predictedType: string
+  confidence: number
+  basis: string
+  lat: number
+  lng: number
+}
+
+/**
+ * Predict zones likely to need future maintenance, from historical recurrence.
+ * Confidence rises with how often a zone recurs and how recently. Uses ALL
+ * issues (incl. resolved) so a fixed-then-recurring zone still surfaces.
+ */
+export function predictMaintenance(issues: IssueView[]): MaintenancePrediction[] {
+  const GRID = 0.01
+  const cells = new Map<string, IssueView[]>()
+  for (const i of issues) {
+    if (i.lat == null || i.lng == null) continue
+    const key = `${Math.round(i.lat / GRID)}:${Math.round(i.lng / GRID)}`
+    const arr = cells.get(key) ?? []
+    arr.push(i)
+    cells.set(key, arr)
+  }
+  const now = Date.now()
+  return [...cells.values()]
+    .filter((arr) => arr.length >= 2)
+    .map((arr) => {
+      const catCounts = new Map<string, number>()
+      for (const i of arr) catCounts.set(i.category_name ?? 'Other', (catCounts.get(i.category_name ?? 'Other') ?? 0) + 1)
+      const [topCategory, topCount] = [...catCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+      const newest = Math.max(...arr.map((i) => (i.created_at ? new Date(i.created_at).getTime() : 0)))
+      const daysSince = (now - newest) / 86_400_000
+      const recencyBoost = daysSince < 14 ? 18 : daysSince < 45 ? 8 : 0
+      const confidence = Math.min(95, 35 + arr.length * 9 + topCount * 4 + recencyBoost)
+      const area = arr.find((i) => i.address)?.address?.split(',').slice(0, 2).join(',') ?? 'Unnamed zone'
+      return {
+        area,
+        predictedType: topCategory,
+        confidence: Math.round(confidence),
+        basis: `${arr.length} past reports here (${topCount} ${topCategory})`,
+        lat: arr[0].lat as number,
+        lng: arr[0].lng as number,
+      }
+    })
+    .sort((a, b) => b.confidence - a.confidence)
+}
+
 export function headlineStats(issues: IssueView[]) {
   const total = issues.length
   const resolved = issues.filter((i) => i.status && RESOLVED_STATUSES.includes(i.status)).length

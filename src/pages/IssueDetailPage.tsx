@@ -20,6 +20,7 @@ import { StaffActions } from '@/components/issue/StaffActions'
 import { VoteControls } from '@/components/issue/VoteControls'
 import { SeverityBadge } from '@/components/issue/SeverityBadge'
 import { PriorityBadge } from '@/components/issue/PriorityBadge'
+import { RepairEstimate } from '@/components/issue/RepairEstimate'
 import { TrustBadge } from '@/components/community/TrustBadge'
 import { Avatar } from '@/components/layout/Header'
 import { timeAgo } from '@/lib/utils'
@@ -105,6 +106,9 @@ export function IssueDetailPage() {
               <PriorityBadge issue={issue} showReasons />
             </CardBody>
           </Card>
+
+          {/* AI repair estimate */}
+          <RepairEstimate issue={issue} />
 
           {/* AI validation result */}
           {validation && validation.verdict !== 'pending' ? (

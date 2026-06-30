@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sparkles, Flame, TrendingUp } from 'lucide-react'
 import type { IssueView } from '@/lib/issues'
-import { clusterHotspots } from '@/features/admin/analytics'
+import { clusterHotspots, predictMaintenance } from '@/features/admin/analytics'
 import { hotspotSummary } from '@/lib/ai'
 import { IssueMap } from '@/components/map/IssueMap'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 export function HotspotsPanel({ issues }: { issues: IssueView[] }) {
   const navigate = useNavigate()
   const clusters = useMemo(() => clusterHotspots(issues), [issues])
+  const predictions = useMemo(() => predictMaintenance(issues), [issues])
   const [summary, setSummary] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -45,6 +46,29 @@ export function HotspotsPanel({ issues }: { issues: IssueView[] }) {
           </p>
         </CardBody>
       </Card>
+
+      {predictions.length > 0 ? (
+        <Card>
+          <CardBody>
+            <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
+              <TrendingUp className="size-5 text-status-validated" /> Predicted maintenance needs
+            </h3>
+            <div className="space-y-2">
+              {predictions.slice(0, 6).map((p, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-status-validated/15 font-mono text-sm font-bold text-status-validated">
+                    {p.confidence}%
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-1 text-sm font-semibold">{p.area}</p>
+                    <p className="text-xs text-muted">Likely <span className="font-medium text-ink-soft">{p.predictedType}</span> · {p.basis}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="h-[55vh] overflow-hidden rounded-[var(--radius-card)] border border-border">
