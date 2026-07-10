@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ShieldAlert, Save } from 'lucide-react'
+import { ShieldAlert, Save, History } from 'lucide-react'
 import { useAllProfiles, useSetUserRole } from '@/features/admin/users'
 import { useDepartments } from '@/features/issues/queries'
 import { useCategories } from '@/features/issues/queries'
@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { Avatar } from '@/components/layout/Header'
 import { ROLE_LABELS, type UserRole } from '@/lib/issues'
+import { ALL_STATUSES, STATUS_META } from '@/lib/issues'
+import { useAuditLog } from '@/features/admin/audit'
+import { timeAgo } from '@/lib/utils'
 
 const ROLES: UserRole[] = ['citizen', 'volunteer', 'authority', 'superadmin']
 
@@ -19,6 +22,9 @@ export function SuperAdminPage() {
   const { data: categories } = useCategories()
   const { data: policies, isLoading: policiesLoading } = useSlaPolicies()
   const savePolicy = useSaveSlaPolicy()
+  const { data: auditLog, isLoading: auditLoading } = useAuditLog()
+  const [auditCategory, setAuditCategory] = useState('all')
+  const [auditStatus, setAuditStatus] = useState('all')
   const [drafts, setDrafts] = useState<Record<string, { level1_days: number; level2_days: number }>>({})
 
   const policyRows = useMemo(() => {
@@ -51,6 +57,7 @@ export function SuperAdminPage() {
     setDrafts((items) => { const copy = { ...items }; delete copy[row.key]; return copy })
   }
   const setRole = useSetUserRole()
+  const filteredAudit = (auditLog ?? []).filter((event) => (auditCategory === 'all' || event.issue?.category_id === auditCategory) && (auditStatus === 'all' || event.to_status === auditStatus))
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
@@ -128,6 +135,19 @@ export function SuperAdminPage() {
               </table>
             </div>
           )}
+        </CardBody>
+      </Card>
+
+      <Card className="mt-6">
+        <CardBody>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div><h2 className="flex items-center gap-2 font-display text-xl font-semibold"><History className="size-5 text-primary" /> Audit log</h2><p className="text-sm text-muted">Latest 100 status changes across the platform.</p></div>
+            <div className="flex flex-wrap gap-2">
+              <select value={auditCategory} onChange={(e) => setAuditCategory(e.target.value)} className="rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm"><option value="all">All categories</option>{categories?.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>
+              <select value={auditStatus} onChange={(e) => setAuditStatus(e.target.value)} className="rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm"><option value="all">All statuses</option>{ALL_STATUSES.map((status) => <option key={status} value={status}>{STATUS_META[status].label}</option>)}</select>
+            </div>
+          </div>
+          {auditLoading ? <div className="grid h-24 place-items-center"><Spinner /></div> : filteredAudit.length === 0 ? <p className="py-8 text-center text-sm text-muted">No status changes match these filters.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-sm"><thead><tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted"><th className="pb-2">When</th><th className="pb-2">Issue</th><th className="pb-2">Category</th><th className="pb-2">Change</th><th className="pb-2">Actor</th><th className="pb-2">Note</th></tr></thead><tbody>{filteredAudit.map((event) => <tr key={event.id} className="border-b border-border last:border-0"><td className="py-3 whitespace-nowrap text-muted" title={event.created_at}>{timeAgo(event.created_at)}</td><td className="max-w-[220px] truncate py-3 font-medium">{event.issue?.title ?? event.issue_id}</td><td className="py-3 text-muted">{event.issue?.category?.name ?? '—'}</td><td className="py-3 whitespace-nowrap"><span className="text-muted">{event.from_status ? STATUS_META[event.from_status].label : 'Created'}</span> → <span className="font-semibold">{STATUS_META[event.to_status].label}</span></td><td className="py-3 text-muted">{event.actor?.full_name ?? 'System'}</td><td className="max-w-[180px] truncate py-3 text-muted">{event.note ?? '—'}</td></tr>)}</tbody></table></div>}
         </CardBody>
       </Card>
     </div>
