@@ -188,6 +188,23 @@ export function useStatusHistory(issueId: string | undefined) {
   })
 }
 
+export function useFixFeedback(issueId: string | undefined, userId?: string) {
+  return useQuery({
+    enabled: !!issueId,
+    queryKey: ['fix-feedback', issueId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fix_feedback').select('satisfied, user_id').eq('issue_id', issueId!)
+      if (error) throw error
+      const rows = data ?? []
+      return {
+        yes: rows.filter((row) => row.satisfied).length,
+        no: rows.filter((row) => !row.satisfied).length,
+        userVote: userId ? rows.find((row) => row.user_id === userId)?.satisfied ?? null : null,
+      }
+    },
+  })
+}
+
 export function useValidation(issueId: string | undefined) {
   return useQuery({
     enabled: !!issueId,

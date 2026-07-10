@@ -176,6 +176,17 @@ export function useAddComment(issueId: string) {
   })
 }
 
+export function useSubmitFixFeedback(issueId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, satisfied }: { userId: string; satisfied: boolean }) => {
+      const { error } = await supabase.from('fix_feedback').insert({ issue_id: issueId, user_id: userId, satisfied })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fix-feedback', issueId] }),
+  })
+}
+
 export function useChangeStatus(issueId: string) {
   const qc = useQueryClient()
   return useMutation({

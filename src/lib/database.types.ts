@@ -228,6 +228,52 @@ export type Database = {
           },
         ]
       }
+      fix_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          issue_id: string
+          satisfied: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_id: string
+          satisfied: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_id?: string
+          satisfied?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fix_feedback_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fix_feedback_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fix_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_media: {
         Row: {
           ai_analysis: Json

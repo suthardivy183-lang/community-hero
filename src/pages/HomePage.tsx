@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Map as MapIcon, Flame, SlidersHorizontal, LocateFixed, Search, X } from 'lucide-react'
+import { Map as MapIcon, Flame, SlidersHorizontal, LocateFixed, Search, X, Plus } from 'lucide-react'
 import { useIssuesInBbox, useSearchIssues, useCategories, type Bbox } from '@/features/issues/queries'
 import { useRealtimeIssues } from '@/hooks/useRealtimeIssues'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -121,9 +121,14 @@ export function HomePage() {
                 <ModeButton active={mapMode === 'pins'} onClick={() => setMapMode('pins')} icon={<MapIcon className="size-4" />}>{t('home.pins')}</ModeButton>
                 <ModeButton active={mapMode === 'heat'} onClick={() => setMapMode('heat')} icon={<Flame className="size-4" />}>{t('home.heatmap')}</ModeButton>
               </div>
-              <Button size="sm" variant="ghost" onClick={locate} loading={locating}>
-                <LocateFixed className="size-4" /> {t('home.nearMe')}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={locate} loading={locating}>
+                  <LocateFixed className="size-4" /> {t('home.nearMe')}
+                </Button>
+                <Button size="sm" onClick={() => navigate('/report')}>
+                  <Plus className="size-4" /> Report issue
+                </Button>
+              </div>
             </div>
             <div className="h-[60vh] lg:h-[calc(100vh-11rem)]">
               <IssueMap
@@ -137,6 +142,13 @@ export function HomePage() {
           </div>
         </section>
       </div>
+      <Button
+        size="lg"
+        className="fixed bottom-20 right-4 z-30 shadow-lg lg:hidden"
+        onClick={() => navigate('/report')}
+      >
+        <Plus className="size-5" /> Report issue
+      </Button>
     </div>
   )
 }

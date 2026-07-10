@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles } from 'lucide-react'
+import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import {
-  useIssue, useIssueMedia, useComments, useStatusHistory, useValidation,
+  useIssue, useIssueMedia, useComments, useStatusHistory, useValidation, useFixFeedback,
 } from '@/features/issues/queries'
 import { useMyInteractions } from '@/features/issues/userState'
-import { useToggleVote, useToggleConfirm, useAddComment } from '@/features/issues/mutations'
+import { useToggleVote, useToggleConfirm, useAddComment, useSubmitFixFeedback } from '@/features/issues/mutations'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { mediaUrl } from '@/lib/supabase'
 import { STATUS_META } from '@/lib/issues'
@@ -33,11 +33,13 @@ export function IssueDetailPage() {
   const { data: comments } = useComments(id)
   const { data: history } = useStatusHistory(id)
   const { data: validation } = useValidation(id)
+  const { data: fixFeedback } = useFixFeedback(id, session?.user.id)
   const { data: interactions } = useMyInteractions(session?.user.id)
 
   const vote = useToggleVote(id ?? '')
   const confirm = useToggleConfirm(id ?? '')
   const addComment = useAddComment(id ?? '')
+  const submitFixFeedback = useSubmitFixFeedback(id ?? '')
   const [comment, setComment] = useState('')
   const storedDemo = readDemoInteraction(id)
   const [demoVoted, setDemoVoted] = useState(storedDemo.voted)
@@ -84,6 +86,7 @@ export function IssueDetailPage() {
                 <CategoryIcon icon={issue.category_icon} className="size-3.5" /> {issue.category_name}
               </span>
               <StatusBadge status={issue.status ?? 'reported'} size="md" />
+              {fixFeedback && fixFeedback.no >= 3 ? <span className="rounded-full bg-status-rejected/15 px-2.5 py-1 text-xs font-semibold text-status-rejected">Disputed by residents</span> : null}
             </div>
             <h1 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">{issue.title}</h1>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
@@ -117,6 +120,30 @@ export function IssueDetailPage() {
           {/* AI validation result */}
           {validation && validation.verdict !== 'pending' ? (
             <ValidationCard verdict={validation.verdict} confidence={validation.confidence} explanation={validation.explanation} resolutionUrl={resolution ? mediaUrl(resolution.storage_path) : null} />
+          ) : null}
+
+          {session && session.user.id !== issue.reporter_id && issue.status && ['resolved', 'ai_validated', 'closed'].includes(issue.status) ? (
+            <Card className="border-primary/25 bg-primary-tint/20">
+              <CardBody>
+                <h2 className="font-display text-lg font-semibold">Was this actually fixed?</h2>
+                <p className="mt-1 text-sm text-muted">Help your neighbours know whether the repair holds up.</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={fixFeedback?.userVote != null || submitFixFeedback.isPending}
+                    onClick={() => submitFixFeedback.mutate({ userId: session.user.id, satisfied: true })}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full border border-primary bg-surface px-3.5 font-semibold text-primary transition-all hover:bg-primary hover:text-primary-fg disabled:cursor-not-allowed disabled:opacity-60"
+                  ><ThumbsUp className="size-4" /> Yes <span className="font-mono">{fixFeedback?.yes ?? 0}</span></button>
+                  <button
+                    type="button"
+                    disabled={fixFeedback?.userVote != null || submitFixFeedback.isPending}
+                    onClick={() => submitFixFeedback.mutate({ userId: session.user.id, satisfied: false })}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full border border-status-rejected bg-surface px-3.5 font-semibold text-status-rejected transition-all hover:bg-status-rejected hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  ><ThumbsDown className="size-4" /> Still broken <span className="font-mono">{fixFeedback?.no ?? 0}</span></button>
+                  {fixFeedback?.userVote != null ? <span className="text-xs text-muted">Thanks for verifying this repair.</span> : null}
+                </div>
+              </CardBody>
+            </Card>
           ) : null}
 
           {/* Comments */}
