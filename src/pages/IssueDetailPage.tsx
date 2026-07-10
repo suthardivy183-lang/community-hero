@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import {
-  useIssue, useIssueMedia, useComments, useStatusHistory, useValidation, useFixFeedback,
+  useIssue, useIssueMedia, useComments, useStatusHistory, useValidation, useFixFeedback, useCategories,
 } from '@/features/issues/queries'
 import { useMyInteractions } from '@/features/issues/userState'
-import { useToggleVote, useToggleConfirm, useAddComment, useSubmitFixFeedback } from '@/features/issues/mutations'
+import { useToggleVote, useToggleConfirm, useAddComment, useSubmitFixFeedback, useChangeStatus } from '@/features/issues/mutations'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { mediaUrl } from '@/lib/supabase'
+import { mediaUrl, supabase } from '@/lib/supabase'
 import { STATUS_META } from '@/lib/issues'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -34,18 +34,26 @@ export function IssueDetailPage() {
   const { data: history } = useStatusHistory(id)
   const { data: validation } = useValidation(id)
   const { data: fixFeedback } = useFixFeedback(id, session?.user.id)
+  const { data: categories } = useCategories()
   const { data: interactions } = useMyInteractions(session?.user.id)
 
   const vote = useToggleVote(id ?? '')
   const confirm = useToggleConfirm(id ?? '')
   const addComment = useAddComment(id ?? '')
   const submitFixFeedback = useSubmitFixFeedback(id ?? '')
+  const withdraw = useChangeStatus(id ?? '')
   const [comment, setComment] = useState('')
   const storedDemo = readDemoInteraction(id)
   const [demoVoted, setDemoVoted] = useState(storedDemo.voted)
   const [demoConfirmed, setDemoConfirmed] = useState(storedDemo.confirmed)
   const [demoComments, setDemoComments] = useState<Array<{ id: string; body: string }>>(storedDemo.comments)
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editSeverity, setEditSeverity] = useState(5)
+  const [editCategory, setEditCategory] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
     if (!id || session) return
@@ -122,6 +130,19 @@ export function IssueDetailPage() {
                 : <SeverityMeter severity={issue.severity ?? 5} />}
             </div>
             <p className="mt-3 leading-relaxed text-ink-soft">{issue.description}</p>
+            {session?.user.id === issue.reporter_id && issue.status === 'reported' ? (
+              <div className="mt-4 rounded-xl border border-border bg-surface p-3">
+                {!editing ? <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => { setEditTitle(issue.title ?? ''); setEditDescription(issue.description ?? ''); setEditSeverity(issue.severity ?? 5); setEditCategory(issue.category_id ?? ''); setEditing(true) }}>Edit report</Button><Button size="sm" variant="danger" loading={withdraw.isPending} onClick={() => withdraw.mutate({ status: 'rejected' })}>Withdraw</Button></div> : (
+                  <div className="space-y-3">
+                    <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm" aria-label="Report title" />
+                    <textarea value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="min-h-24 w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm" aria-label="Report description" />
+                    <select value={editCategory} onChange={(event) => setEditCategory(event.target.value)} className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm" aria-label="Report category">{categories?.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>
+                    <label className="block text-sm font-medium">Severity {editSeverity}/10<input type="range" min="1" max="10" value={editSeverity} onChange={(event) => setEditSeverity(Number(event.target.value))} className="mt-2 w-full accent-[var(--color-primary)]" /></label>
+                    <div className="flex gap-2"><Button size="sm" loading={editSaving} onClick={async () => { setEditSaving(true); const { error } = await supabase.from('issues').update({ title: editTitle.trim(), description: editDescription.trim(), severity: editSeverity, category_id: editCategory || issue.category_id }).eq('id', issue.id as string); setEditSaving(false); if (!error) setEditing(false) }}>Save changes</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button></div>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {/* AI explainable priority */}
