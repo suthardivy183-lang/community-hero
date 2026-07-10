@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown, Share2 } from 'lucide-react'
 import {
   useIssue, useIssueMedia, useComments, useStatusHistory, useValidation, useFixFeedback, useCategories,
 } from '@/features/issues/queries'
@@ -160,6 +160,7 @@ export function IssueDetailPage() {
           {validation && validation.verdict !== 'pending' ? (
             <ValidationCard verdict={validation.verdict} confidence={validation.confidence} explanation={validation.explanation} resolutionUrl={resolution ? mediaUrl(resolution.storage_path) : null} />
           ) : null}
+          {session?.user.id === issue.reporter_id && issue.status === 'ai_validated' ? <Button type="button" variant="outline" onClick={() => shareImpact(issue.title ?? 'CommunityHero report', issue.severity_score ?? (issue.severity ?? 5) * 10)}><Share2 className="size-4" /> Share your impact</Button> : null}
 
           {session && session.user.id !== issue.reporter_id && issue.status && ['resolved', 'ai_validated', 'closed'].includes(issue.status) ? (
             <Card className="border-primary/25 bg-primary-tint/20">
@@ -272,6 +273,46 @@ export function IssueDetailPage() {
       </div>
     </div>
   )
+}
+
+async function shareImpact(title: string, severity: number) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 1200
+  canvas.height = 630
+  const context = canvas.getContext('2d')
+  if (!context) return
+  context.fillStyle = '#3f51b5'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.fillStyle = '#ffffff'
+  context.font = '700 58px sans-serif'
+  context.fillText('CommunityHero', 72, 100)
+  context.font = '600 42px sans-serif'
+  const words = title.split(' ')
+  let line = ''
+  let y = 220
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word
+    if (context.measureText(next).width > 1000) { context.fillText(line, 72, y); line = word; y += 58 } else line = next
+  }
+  if (line) context.fillText(line, 72, y)
+  context.font = '500 30px sans-serif'
+  context.fillText(`Severity ${Math.round(severity)}/100`, 72, 430)
+  context.fillText('AI-verified fixed ✅', 72, 500)
+  context.font = '400 22px sans-serif'
+  context.fillText(window.location.origin, 72, 570)
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+  if (!blob) return
+  const file = new File([blob], 'communityhero-impact.png', { type: 'image/png' })
+  if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+    await navigator.share({ title: 'My CommunityHero impact', text: 'This civic issue was AI-verified fixed.', files: [file] })
+    return
+  }
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = file.name
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 function readDemoInteraction(issueId: string | undefined): { voted: boolean; confirmed: boolean; comments: Array<{ id: string; body: string }> } {
