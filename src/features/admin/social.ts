@@ -55,6 +55,31 @@ export function useSocialMentions(categorySlugs: string[]) {
   })
 }
 
+/** Analyse a manually pasted social post through the same AI extractor. */
+export function useAnalyseSocialPost() {
+  return useMutation({
+    mutationFn: async ({ text, source, categorySlugs }: { text: string; source: string; categorySlugs: string[] }): Promise<SocialMention> => {
+      const { data, error } = await supabase.functions.invoke('ai-social', {
+        body: { text, source, hintCategorySlugs: categorySlugs },
+      })
+      if (error) throw error
+      const result = (data ?? {}) as Partial<SocialMention>
+      return {
+        id: `manual-${crypto.randomUUID()}`,
+        source,
+        author: 'Manual intake',
+        text,
+        time: 'just now',
+        categorySlug: result.categorySlug ?? 'other',
+        issueType: result.issueType ?? 'unknown',
+        location: result.location ?? '',
+        confidence: result.confidence ?? 0,
+        summary: result.summary ?? text,
+      }
+    },
+  })
+}
+
 /** Publish a reviewed mention as a draft complaint (officer-created). */
 export function usePublishMention() {
   return useMutation({
