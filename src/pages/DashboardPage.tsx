@@ -32,7 +32,7 @@ export function DashboardPage() {
         <span className="grid size-11 place-items-center rounded-xl bg-primary text-primary-fg"><LayoutDashboard className="size-6" /></span>
         <div>
           <h1 className="font-display text-3xl font-semibold">Authority dashboard</h1>
-          <p className="text-sm text-muted">{role ? ROLE_LABELS[role] : ''} · triage, resolve & measure impact</p>
+          <p className="text-sm text-muted">{role ? ROLE_LABELS[role] : 'Public demo'} · triage, resolve & measure impact</p>
         </div>
       </div>
 

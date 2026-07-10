@@ -15,7 +15,6 @@ export async function uploadIssuePhoto(
   const path = `${userId}/${issueId}/${kind}-${Date.now()}.jpg`
   const { error } = await supabase.storage.from('issue-media').upload(path, blob, {
     contentType: 'image/jpeg',
-    upsert: true,
   })
   if (error) throw error
   return path
@@ -51,7 +50,7 @@ export interface CreateIssueInput {
 }
 
 async function uploadBlob(blob: Blob, path: string, contentType: string): Promise<void> {
-  const { error } = await supabase.storage.from('issue-media').upload(path, blob, { contentType, upsert: true })
+  const { error } = await supabase.storage.from('issue-media').upload(path, blob, { contentType })
   if (error) throw error
 }
 
