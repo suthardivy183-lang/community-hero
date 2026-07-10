@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { LayoutDashboard, ListChecks, BarChart3, Flame, Route as RouteIcon, Radio } from 'lucide-react'
+import { LayoutDashboard, ListChecks, BarChart3, Flame, Route as RouteIcon, Radio, MapPinCheck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useIssues } from '@/features/issues/queries'
 import { useRealtimeIssues } from '@/hooks/useRealtimeIssues'
@@ -9,6 +9,7 @@ import { ImpactCharts } from '@/components/admin/ImpactCharts'
 import { HotspotsPanel } from '@/components/admin/HotspotsPanel'
 import { RoutePlanner } from '@/components/admin/RoutePlanner'
 import { SocialMonitor } from '@/components/admin/SocialMonitor'
+import { VerifyPanel } from '@/components/admin/VerifyPanel'
 import { EscalationBanner } from '@/components/admin/EscalationBanner'
 import { Spinner } from '@/components/ui/Spinner'
 import { ROLE_LABELS } from '@/lib/issues'
@@ -48,6 +49,7 @@ export function DashboardPage() {
             <Tabs.Trigger value="map" className={cn(tabTrigger)}><Flame className="size-4" /> Hotspots</Tabs.Trigger>
             <Tabs.Trigger value="route" className={cn(tabTrigger)}><RouteIcon className="size-4" /> Route</Tabs.Trigger>
             <Tabs.Trigger value="social" className={cn(tabTrigger)}><Radio className="size-4" /> Social</Tabs.Trigger>
+            {role === 'volunteer' || role === 'superadmin' ? <Tabs.Trigger value="verify" className={cn(tabTrigger)}><MapPinCheck className="size-4" /> Verify</Tabs.Trigger> : null}
           </Tabs.List>
 
           <Tabs.Content value="triage"><TriageBoard issues={issues ?? []} /></Tabs.Content>
@@ -55,6 +57,7 @@ export function DashboardPage() {
           <Tabs.Content value="map"><HotspotsPanel issues={issues ?? []} /></Tabs.Content>
           <Tabs.Content value="route"><RoutePlanner issues={issues ?? []} /></Tabs.Content>
           <Tabs.Content value="social"><SocialMonitor /></Tabs.Content>
+          {role === 'volunteer' || role === 'superadmin' ? <Tabs.Content value="verify"><VerifyPanel /></Tabs.Content> : null}
         </Tabs.Root>
         </>
       )}

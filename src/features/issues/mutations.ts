@@ -176,6 +176,11 @@ export function useAddComment(issueId: string) {
   })
 }
 
+export async function addIssueComment(issueId: string, userId: string, body: string): Promise<void> {
+  const { error } = await supabase.from('comments').insert({ issue_id: issueId, user_id: userId, body })
+  if (error) throw error
+}
+
 export function useSubmitFixFeedback(issueId: string) {
   const qc = useQueryClient()
   return useMutation({
