@@ -6,6 +6,7 @@ import type { IssueView } from '@/lib/issues'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { computePriority } from '@/lib/priority'
+import { estimateRepair } from '@/lib/repair'
 import {
   statusBreakdown, categoryBreakdown, departmentPerformance, avgResolutionHours, headlineStats,
 } from '@/features/admin/analytics'
@@ -16,6 +17,9 @@ export function ImpactCharts({ issues }: { issues: IssueView[] }) {
   const byCategory = categoryBreakdown(issues).slice(0, 6)
   const byDept = departmentPerformance(issues)
   const avgHours = avgResolutionHours(issues)
+  const openBudget = issues.filter((issue) => !['resolved', 'ai_validated', 'closed', 'rejected'].includes(issue.status ?? '')).reduce((sum, issue) => sum + estimateRepair(issue).cost, 0)
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0)
+  const resolvedBudget = issues.filter((issue) => ['resolved', 'ai_validated', 'closed'].includes(issue.status ?? '') && issue.resolved_at && new Date(issue.resolved_at) >= monthStart).reduce((sum, issue) => sum + estimateRepair(issue).cost, 0)
 
   return (
     <div className="space-y-5">
@@ -37,6 +41,8 @@ export function ImpactCharts({ issues }: { issues: IssueView[] }) {
         <Stat label="Resolution rate" value={`${stats.resolutionRate}%`} tone="var(--color-status-resolved)" />
         <Stat label="Critical open" value={stats.critical} tone="var(--color-sev-high)" />
         <Stat label="Avg resolution" value={avgHours != null ? `${avgHours.toFixed(1)}h` : '—'} tone="var(--color-status-acknowledged)" />
+        <Stat label="Estimated repair budget (open)" value={formatInr(openBudget)} tone="var(--color-status-progress)" />
+        <Stat label="Est. spent (resolved this month)" value={formatInr(resolvedBudget)} tone="var(--color-status-resolved)" />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -118,6 +124,10 @@ function downloadIssuesCsv(issues: IssueView[]) {
   anchor.download = `communityhero-issues-${new Date().toISOString().slice(0, 10)}.csv`
   anchor.click()
   URL.revokeObjectURL(url)
+}
+
+function formatInr(value: number): string {
+  return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
 function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
