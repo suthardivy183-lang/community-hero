@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Award, Lock, MapPin } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useBadges, useUserBadges } from '@/features/community/queries'
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input, Label } from '@/components/ui/Field'
+import { resizeImageToJpeg } from '@/lib/image'
 
 export function ProfilePage() {
   const { session, profile, refreshProfile } = useAuth()
@@ -29,6 +30,10 @@ export function ProfilePage() {
   }
   const demoReport = !profile ? readDemoReport() : null
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? '')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [showUrlFallback, setShowUrlFallback] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const avatarFileRef = useRef<HTMLInputElement>(null)
   const [caption, setCaption] = useState(() => String(session?.user.user_metadata?.caption ?? ''))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -57,9 +62,29 @@ export function ProfilePage() {
         <Card className="mt-4">
           <CardBody className="space-y-3">
             <h2 className="font-display text-lg font-semibold">Edit your citizen profile</h2>
+            <input
+              ref={avatarFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null
+                setAvatarFile(file)
+                if (file) setProfileError(null)
+              }}
+            />
             <div>
-              <Label htmlFor="avatar-url">Profile photo URL</Label>
-              <Input id="avatar-url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://…" />
+              <Label>Profile photo</Label>
+              <div className="flex items-center gap-3">
+                <Avatar name={profile.full_name} url={avatarFile ? URL.createObjectURL(avatarFile) : profile.avatar_url} size={48} />
+                <Button type="button" variant="outline" onClick={() => avatarFileRef.current?.click()}>
+                  {avatarFile ? 'Choose another photo' : 'Choose photo'}
+                </Button>
+              </div>
+              <button type="button" className="mt-1 text-xs font-medium text-primary hover:underline" onClick={() => setShowUrlFallback((visible) => !visible)}>
+                {showUrlFallback ? 'Hide URL fallback' : 'Or paste a photo URL'}
+              </button>
+              {showUrlFallback ? <Input id="avatar-url" className="mt-2" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://…" /> : null}
             </div>
             <div>
               <Label htmlFor="caption">Caption</Label>
@@ -72,17 +97,36 @@ export function ProfilePage() {
                 onClick={async () => {
                   setSaving(true)
                   setSaved(false)
-                  await Promise.all([
-                    supabase.from('profiles').update({ avatar_url: avatarUrl.trim() || null }).eq('id', session.user.id),
-                    supabase.auth.updateUser({ data: { caption: caption.trim() } }),
-                  ])
-                  await refreshProfile()
-                  setSaving(false)
-                  setSaved(true)
+                  setProfileError(null)
+                  try {
+                    let nextAvatarUrl = avatarUrl.trim() || null
+                    if (avatarFile) {
+                      const blob = await resizeImageToJpeg(avatarFile, 512)
+                      const path = `avatars/${session.user.id}.jpg`
+                      const { error: uploadError } = await supabase.storage.from('issue-media').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+                      if (uploadError) throw uploadError
+                      nextAvatarUrl = supabase.storage.from('issue-media').getPublicUrl(path).data.publicUrl
+                    }
+                    const [{ error: profileUpdateError }, { error: metadataError }] = await Promise.all([
+                      supabase.from('profiles').update({ avatar_url: nextAvatarUrl }).eq('id', session.user.id),
+                      supabase.auth.updateUser({ data: { caption: caption.trim() } }),
+                    ])
+                    if (profileUpdateError) throw profileUpdateError
+                    if (metadataError) throw metadataError
+                    setAvatarUrl(nextAvatarUrl ?? '')
+                    setAvatarFile(null)
+                    await refreshProfile()
+                    setSaved(true)
+                  } catch (error) {
+                    setProfileError(error instanceof Error ? error.message : 'Could not save profile.')
+                  } finally {
+                    setSaving(false)
+                  }
                 }}
               >Save profile</Button>
               {saved ? <span className="text-sm font-medium text-status-resolved">Saved</span> : null}
             </div>
+            {profileError ? <p className="text-sm text-status-rejected">{profileError}</p> : null}
           </CardBody>
         </Card>
       ) : null}

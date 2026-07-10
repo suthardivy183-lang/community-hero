@@ -70,6 +70,20 @@ export async function processImage(file: File): Promise<ProcessedMedia> {
   }
 }
 
+/** Resize a profile image to a compact JPEG for storage. */
+export async function resizeImageToJpeg(file: File, maxDimension = 512): Promise<Blob> {
+  const bitmap = await createImageBitmap(file)
+  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas not supported')
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  bitmap.close()
+  return canvasToBlob(canvas)
+}
+
 /** Validate a video and extract a poster frame for AI + thumbnail. */
 export async function processVideo(file: File): Promise<ProcessedMedia> {
   if (file.size > MAX_VIDEO_BYTES) {
