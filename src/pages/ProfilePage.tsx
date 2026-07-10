@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Award, Lock, MapPin } from 'lucide-react'
+import { Award, Lock, MapPin, Grid3X3, Bookmark, Settings, Share2, Pencil } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useBadges, useUserBadges } from '@/features/community/queries'
 import { useIssues } from '@/features/issues/queries'
@@ -43,28 +43,26 @@ export function ProfilePage() {
   const [caption, setCaption] = useState(() => String(session?.user.user_metadata?.caption ?? ''))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showEditor, setShowEditor] = useState(false)
   const ownedSet = new Set(owned ?? [])
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-      {/* Identity */}
-      <Card>
-        <CardBody className="flex items-center gap-4">
-          <Avatar name={displayProfile.full_name} url={displayProfile.avatar_url} size={64} />
-          <div className="flex-1">
-            <h1 className="font-display text-2xl font-semibold">{displayProfile.full_name}</h1>
-            <p className="text-sm text-muted">{ROLE_LABELS[displayProfile.role]}{!profile ? ' · Public demo' : ''}</p>
-            {caption ? <p className="mt-1 text-sm text-ink-soft">{caption}</p> : null}
-            <div className="mt-1.5"><TrustBadge score={displayProfile.trust_score ?? 50} /></div>
-          </div>
-          <div className="text-right">
-            <div className="font-mono text-3xl font-bold text-primary">{displayProfile.points}</div>
-            <div className="text-xs uppercase tracking-wide text-muted">impact points</div>
-          </div>
-        </CardBody>
-      </Card>
+    <div className="mx-auto max-w-3xl px-4 pb-10 pt-4 sm:px-6">
+      {/* Social-style profile header */}
+      <section className="border-b border-border pb-5">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="truncate text-xl font-bold tracking-tight">{session ? (session.user.user_metadata?.username ?? displayProfile.full_name ?? 'citizen') : 'communityhero'}</h1>
+          <div className="flex items-center gap-1"><button type="button" className="rounded-lg p-2 text-ink-soft hover:bg-surface-sunk" aria-label="Settings"><Settings className="size-5" /></button><button type="button" className="rounded-lg p-2 text-ink-soft hover:bg-surface-sunk" aria-label="Share profile"><Share2 className="size-5" /></button></div>
+        </div>
+        <div className="mt-5 flex items-center gap-5 sm:gap-8">
+          <div className="relative shrink-0 rounded-full bg-gradient-to-br from-primary via-accent to-status-validated p-1"><div className="rounded-full bg-paper p-1"><Avatar name={displayProfile.full_name} url={avatarPreviewUrl ?? displayProfile.avatar_url} size={88} /></div><span className="absolute bottom-0 right-0 grid size-6 place-items-center rounded-full border-2 border-paper bg-primary text-primary-fg"><Pencil className="size-3" /></span></div>
+          <div className="grid flex-1 grid-cols-3 gap-2 text-center"><div><p className="text-xl font-bold">{myIssues?.length ?? 0}</p><p className="text-xs text-muted">posts</p></div><div><p className="text-xl font-bold">{displayProfile.points}</p><p className="text-xs text-muted">impact pts</p></div><div><p className="text-xl font-bold">{owned?.length ?? 0}</p><p className="text-xs text-muted">badges</p></div></div>
+        </div>
+        <div className="mt-4"><h2 className="font-semibold">{displayProfile.full_name}</h2><p className="text-sm text-muted">{ROLE_LABELS[displayProfile.role]}{!profile ? ' · Public demo' : ''}</p>{caption ? <p className="mt-2 text-sm text-ink-soft">{caption}</p> : <p className="mt-2 text-sm italic text-muted">Making the community better, one report at a time.</p>}<div className="mt-2"><TrustBadge score={displayProfile.trust_score ?? 50} /></div></div>
+        <div className="mt-4 flex gap-2"><Button className="flex-1" variant="outline" onClick={() => setShowEditor((open) => !open)}><Pencil className="size-4" /> {showEditor ? 'Close editor' : 'Edit profile'}</Button><Button className="flex-1" variant="outline" onClick={() => navigator.clipboard?.writeText(window.location.href)}><Share2 className="size-4" /> Share profile</Button></div>
+      </section>
 
-      {session && profile ? (
+      {session && profile && showEditor ? (
         <Card className="mt-4">
           <CardBody className="space-y-3">
             <h2 className="font-display text-lg font-semibold">Edit your citizen profile</h2>
@@ -137,6 +135,8 @@ export function ProfilePage() {
         </Card>
       ) : null}
 
+      <div className="mt-4 grid grid-cols-3 border-b border-border"><button type="button" className="flex items-center justify-center border-b-2 border-primary py-3 text-primary" aria-label="Reports"><Grid3X3 className="size-5" /></button><button type="button" className="flex items-center justify-center py-3 text-muted" aria-label="Achievements"><Award className="size-5" /></button><button type="button" className="flex items-center justify-center py-3 text-muted" aria-label="Saved"><Bookmark className="size-5" /></button></div>
+
       {/* Badges */}
       <h2 className="mb-3 mt-6 font-display text-lg font-semibold">Achievements</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -172,7 +172,7 @@ export function ProfilePage() {
       {isLoading ? (
         <div className="grid h-32 place-items-center"><Spinner /></div>
       ) : myIssues && myIssues.length > 0 ? (
-        <div className="space-y-3">{myIssues.map((i) => <IssueCard key={i.id} issue={i} />)}</div>
+        <div className="grid gap-3 sm:grid-cols-2">{myIssues.map((i) => <IssueCard key={i.id} issue={i} />)}</div>
       ) : (
         <p className="text-sm text-muted">You haven't reported anything yet.</p>
       )}
