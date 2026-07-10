@@ -45,6 +45,7 @@ export function IssueDetailPage() {
   const [demoVoted, setDemoVoted] = useState(storedDemo.voted)
   const [demoConfirmed, setDemoConfirmed] = useState(storedDemo.confirmed)
   const [demoComments, setDemoComments] = useState<Array<{ id: string; body: string }>>(storedDemo.comments)
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id || session) return
@@ -56,8 +57,9 @@ export function IssueDetailPage() {
 
   const voted = session ? (interactions?.votes.has(issue.id as string) ?? false) : demoVoted
   const confirmed = session ? (interactions?.confirmations.has(issue.id as string) ?? false) : demoConfirmed
-  const originalVideo = media?.find((m) => m.type === 'video')
-  const originalPhoto = media?.find((m) => m.kind === 'original' && m.type === 'photo')
+  const originalMedia = media?.filter((item) => item.kind === 'original') ?? []
+  const activeMedia = originalMedia.find((item) => item.id === selectedMediaId) ?? originalMedia[0]
+  const activePoster = originalMedia.find((item) => item.type === 'photo')
   const resolution = media?.find((m) => m.kind === 'resolution')
 
   return (
@@ -69,13 +71,29 @@ export function IssueDetailPage() {
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-5">
           {/* Media */}
-          {originalVideo ? (
+          {activeMedia?.type === 'video' ? (
             <div className="overflow-hidden rounded-[var(--radius-card)] border border-border shadow-[var(--shadow-card)]">
-              <video src={mediaUrl(originalVideo.storage_path)} controls playsInline poster={originalPhoto ? mediaUrl(originalPhoto.storage_path) : undefined} className="aspect-video w-full bg-ink object-contain" />
+              <video src={mediaUrl(activeMedia.storage_path)} controls playsInline poster={activePoster ? mediaUrl(activePoster.storage_path) : undefined} className="aspect-video w-full bg-ink object-contain" />
             </div>
-          ) : originalPhoto ? (
+          ) : activeMedia?.type === 'photo' ? (
             <div className="overflow-hidden rounded-[var(--radius-card)] border border-border shadow-[var(--shadow-card)]">
-              <img src={mediaUrl(originalPhoto.storage_path)} alt={issue.title ?? ''} className="aspect-video w-full object-cover" />
+              <img src={mediaUrl(activeMedia.storage_path)} alt={issue.title ?? ''} className="aspect-video w-full object-cover" />
+            </div>
+          ) : null}
+          {originalMedia.length > 1 ? (
+            <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Issue media gallery">
+              {originalMedia.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedMediaId(item.id)}
+                  className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 ${activeMedia?.id === item.id ? 'border-primary' : 'border-border'}`}
+                  aria-label={`View ${item.type}`}
+                >
+                  {item.type === 'photo' ? <img src={mediaUrl(item.storage_path)} alt="" className="size-full object-cover" /> : <video src={mediaUrl(item.storage_path)} muted playsInline className="size-full object-cover" />}
+                  {item.type === 'video' ? <span className="absolute inset-0 grid place-items-center bg-ink/35 text-xs font-bold text-white">VIDEO</span> : null}
+                </button>
+              ))}
             </div>
           ) : null}
 
