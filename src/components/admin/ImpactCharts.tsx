@@ -1,8 +1,11 @@
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+import { Download, ExternalLink } from 'lucide-react'
 import type { IssueView } from '@/lib/issues'
 import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { computePriority } from '@/lib/priority'
 import {
   statusBreakdown, categoryBreakdown, departmentPerformance, avgResolutionHours, headlineStats,
 } from '@/features/admin/analytics'
@@ -16,6 +19,19 @@ export function ImpactCharts({ issues }: { issues: IssueView[] }) {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <Button size="sm" variant="outline" onClick={() => downloadIssuesCsv(issues)} disabled={issues.length === 0}>
+          <Download className="size-4" /> Export CSV
+        </Button>
+        <a
+          href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/open311`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+        >
+          Open311 feed <ExternalLink className="size-3.5" />
+        </a>
+      </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total reports" value={stats.total} />
         <Stat label="Resolution rate" value={`${stats.resolutionRate}%`} tone="var(--color-status-resolved)" />
@@ -71,6 +87,37 @@ export function ImpactCharts({ issues }: { issues: IssueView[] }) {
       </Card>
     </div>
   )
+}
+
+function csvCell(value: unknown): string {
+  const text = value == null ? '' : String(value)
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+function downloadIssuesCsv(issues: IssueView[]) {
+  const headers = ['id', 'title', 'category', 'department', 'status', 'severity_score', 'priority_score', 'created_at', 'resolved_at', 'address', 'lat', 'lng']
+  const rows = issues.map((issue) => [
+    issue.id,
+    issue.title,
+    issue.category_name ?? issue.category_slug,
+    issue.department_name,
+    issue.status,
+    issue.severity_score ?? (issue.severity != null ? issue.severity * 10 : null),
+    computePriority(issue).score,
+    issue.created_at,
+    issue.resolved_at,
+    issue.address,
+    issue.lat,
+    issue.lng,
+  ])
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n')
+  const blob = new Blob([`\ufeff${csv}\n`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `communityhero-issues-${new Date().toISOString().slice(0, 10)}.csv`
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
