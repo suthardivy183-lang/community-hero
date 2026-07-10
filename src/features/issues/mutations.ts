@@ -201,3 +201,19 @@ export function useChangeStatus(issueId: string) {
     },
   })
 }
+
+export async function updateIssueStatus(issueId: string, status: IssueStatus): Promise<void> {
+  const { error } = await supabase.from('issues').update({ status }).eq('id', issueId)
+  if (error) throw error
+}
+
+export function useAssignDepartment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ issueId, departmentId }: { issueId: string; departmentId: string | null }) => {
+      const { error } = await supabase.from('issues').update({ department_id: departmentId }).eq('id', issueId)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['issues'] }),
+  })
+}
