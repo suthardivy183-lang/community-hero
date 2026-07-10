@@ -76,6 +76,38 @@ export type Database = {
           },
         ]
       }
+      sla_policies: {
+        Row: {
+          id: string
+          category_id: string | null
+          level1_days: number
+          level2_days: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          category_id?: string | null
+          level1_days?: number
+          level2_days?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category_id?: string | null
+          level1_days?: number
+          level2_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_policies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           body: string
