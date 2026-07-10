@@ -43,11 +43,9 @@ export function Header() {
           <NavLink to="/map" className={navLinkClass}>
             <MapPin className="size-4" /> {t('nav.map')}
           </NavLink>
-          {isStaff ? (
-            <NavLink to="/dashboard" className={navLinkClass}>
-              <LayoutDashboard className="size-4" /> {t('nav.dashboard')}
-            </NavLink>
-          ) : null}
+          <NavLink to="/dashboard" className={navLinkClass}>
+            <LayoutDashboard className="size-4" /> {t('nav.dashboard')}
+          </NavLink>
           <NavLink to="/leaderboard" className={navLinkClass}>
             <Trophy className="size-4" /> {t('nav.leaderboard')}
           </NavLink>

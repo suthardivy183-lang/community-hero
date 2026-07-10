@@ -46,6 +46,8 @@ export function ReportPage() {
   const [geocoding, setGeocoding] = useState(false)
   const [context, setContext] = useState<IssueContext>({})
   const [error, setError] = useState<string | null>(null)
+  const [demoSubmitted, setDemoSubmitted] = useState(false)
+  const [demoJoinedIssueId, setDemoJoinedIssueId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { locate() }, [locate])
@@ -114,7 +116,10 @@ export function ReportPage() {
   }
 
   async function confirmExisting(issueId: string) {
-    if (!session) return
+    if (!session) {
+      setDemoJoinedIssueId(issueId)
+      return
+    }
     await supabase.from('confirmations').insert({ issue_id: issueId, user_id: session.user.id })
     navigate(`/issue/${issueId}`)
   }
@@ -122,10 +127,21 @@ export function ReportPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!session) return
     if (!media) return setError('Please add a photo or video of the issue.')
     if (!categoryId) return setError('Please choose a category.')
     if (!title.trim()) return setError('Please add a short title.')
+    if (!session) {
+      window.localStorage.setItem('communityhero-demo-report', JSON.stringify({
+        title: title.trim(),
+        description: description.trim(),
+        severity,
+        address,
+        createdAt: new Date().toISOString(),
+      }))
+      setDemoSubmitted(true)
+      navigate('/profile')
+      return
+    }
 
     try {
       const id = await createIssue.mutateAsync({
@@ -250,11 +266,11 @@ export function ReportPage() {
                     <div className="min-w-0">
                       <p className="line-clamp-1 text-sm font-medium">{n.title}</p>
                       <p className="text-xs text-muted">
-                        {Math.round(n.similarity)}% similar · {formatDistance(n.distance_m)} · {n.confirm_count} supporters
+                        {Math.round(n.similarity)}% similar · {formatDistance(n.distance_m)} · {(n.confirm_count ?? 0) + (demoJoinedIssueId === n.id ? 1 : 0)} supporters
                       </p>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent-fg">
-                      Join <ArrowRight className="size-3.5" />
+                      {demoJoinedIssueId === n.id ? 'Joined' : 'Join'} <ArrowRight className="size-3.5" />
                     </span>
                   </button>
                 ))}
@@ -316,9 +332,10 @@ export function ReportPage() {
 
         {error ? <FieldError>{error}</FieldError> : null}
 
-        <Button type="submit" size="lg" className="w-full" loading={createIssue.isPending}>
-          Submit report
+        <Button type="submit" size="lg" className="w-full" loading={createIssue.isPending} disabled={demoSubmitted}>
+          {demoSubmitted ? 'Report submitted (demo)' : 'Submit report'}
         </Button>
+        {demoSubmitted ? <p className="text-center text-sm font-medium text-status-resolved">Thanks — your report was submitted in public demo mode.</p> : null}
       </form>
     </div>
   )

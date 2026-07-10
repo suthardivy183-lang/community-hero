@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation, Link } from 'react-router-dom'
 import { Sparkles, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -12,7 +12,7 @@ export function AuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { session } = useAuth()
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
+  const from = (location.state as { from?: string } | null)?.from ?? '/map'
 
   const [mode, setMode] = useState<Mode>('signin')
   const [name, setName] = useState('')
@@ -23,7 +23,7 @@ export function AuthPage() {
   const [busy, setBusy] = useState(false)
 
   if (session) {
-    navigate(from, { replace: true })
+    return <Navigate to={from} replace />
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -59,9 +59,10 @@ export function AuthPage() {
 
   async function handleGoogle() {
     setError(null)
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}${from}` },
+      options: { redirectTo: `${appUrl}${from}` },
     })
     if (error) setError(error.message)
   }

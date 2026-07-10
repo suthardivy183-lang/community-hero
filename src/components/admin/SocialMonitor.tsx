@@ -6,8 +6,10 @@ import { useSocialMentions, usePublishMention, type SocialMention } from '@/feat
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
+import { useAuth } from '@/features/auth/AuthProvider'
 
 export function SocialMonitor() {
+  const { session } = useAuth()
   const navigate = useNavigate()
   const { data: categories } = useCategories()
   const slugs = (categories ?? []).map((c) => c.slug)
@@ -15,8 +17,13 @@ export function SocialMonitor() {
   const publish = usePublishMention()
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [publishing, setPublishing] = useState<string | null>(null)
+  const [published, setPublished] = useState<Set<string>>(new Set())
 
   async function handlePublish(m: SocialMention) {
+    if (!session) {
+      setPublished((items) => new Set(items).add(m.id))
+      return
+    }
     const categoryId = categories?.find((c) => c.slug === m.categorySlug)?.id
     if (!categoryId) return
     setPublishing(m.id)
@@ -60,8 +67,8 @@ export function SocialMonitor() {
                 ) : null}
               </div>
               <div className="mt-3 flex gap-2">
-                <Button size="sm" onClick={() => handlePublish(m)} loading={publishing === m.id}>
-                  <Check className="size-4" /> Publish as complaint
+                <Button size="sm" onClick={() => handlePublish(m)} loading={publishing === m.id} disabled={published.has(m.id)}>
+                  <Check className="size-4" /> {published.has(m.id) ? 'Published (demo)' : 'Publish as complaint'}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setDismissed((s) => new Set(s).add(m.id))}>
                   <X className="size-4" /> Dismiss

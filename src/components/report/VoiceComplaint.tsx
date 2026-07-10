@@ -19,7 +19,16 @@ export function VoiceComplaint({ categorySlugs, onExtract }: VoiceComplaintProps
   const [lang, setLang] = useState<AppLanguage>((i18n.language as AppLanguage) || 'en')
   const [extracting, setExtracting] = useState(false)
 
-  if (!supported) return null
+  if (!supported) {
+    return (
+      <Card className="border-border bg-surface-sunk/40">
+        <CardBody>
+          <h3 className="flex items-center gap-2 font-semibold text-ink-soft"><Mic className="size-4" /> Report by voice</h3>
+          <p className="mt-2 text-sm text-muted">Voice reporting is not supported by this browser. Use Chrome or enter the report details manually.</p>
+        </CardBody>
+      </Card>
+    )
+  }
 
   async function useTranscript() {
     if (!transcript.trim()) return

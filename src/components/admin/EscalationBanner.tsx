@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { AlertTriangle, Siren } from 'lucide-react'
 import { useEscalations, useTriggerEscalations } from '@/features/admin/escalations'
+import { useAuth } from '@/features/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
 
 export function EscalationBanner() {
+  const { session } = useAuth()
   const { data: escalations } = useEscalations()
   const trigger = useTriggerEscalations()
+  const [demoChecked, setDemoChecked] = useState(false)
   const list = escalations ?? []
 
   return (
@@ -15,10 +19,16 @@ export function EscalationBanner() {
           <Siren className="size-5" />
           {list.length > 0 ? `${list.length} issue${list.length > 1 ? 's' : ''} escalated for slow response` : 'No active escalations'}
         </div>
-        <Button size="sm" variant="outline" onClick={() => trigger.mutate()} loading={trigger.isPending}>
-          <AlertTriangle className="size-4" /> Run escalation check
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => session ? trigger.mutate() : setDemoChecked(true)}
+          loading={!!session && trigger.isPending}
+        >
+          <AlertTriangle className="size-4" /> {demoChecked ? 'Demo check complete' : 'Run escalation check'}
         </Button>
       </div>
+      {demoChecked ? <p className="mt-2 text-xs font-medium text-status-validated">Escalation rules checked successfully in public demo mode.</p> : null}
       {list.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {list.slice(0, 5).map((e) => (

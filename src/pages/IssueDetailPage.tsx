@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles } from 'lucide-react'
 import {
@@ -39,20 +39,24 @@ export function IssueDetailPage() {
   const confirm = useToggleConfirm(id ?? '')
   const addComment = useAddComment(id ?? '')
   const [comment, setComment] = useState('')
+  const storedDemo = readDemoInteraction(id)
+  const [demoVoted, setDemoVoted] = useState(storedDemo.voted)
+  const [demoConfirmed, setDemoConfirmed] = useState(storedDemo.confirmed)
+  const [demoComments, setDemoComments] = useState<Array<{ id: string; body: string }>>(storedDemo.comments)
+
+  useEffect(() => {
+    if (!id || session) return
+    window.localStorage.setItem(`communityhero-demo-interaction-${id}`, JSON.stringify({ voted: demoVoted, confirmed: demoConfirmed, comments: demoComments }))
+  }, [id, session, demoVoted, demoConfirmed, demoComments])
 
   if (isLoading) return <div className="grid h-[60vh] place-items-center"><Spinner /></div>
   if (!issue) return <div className="mx-auto max-w-2xl px-4 py-10 text-center text-muted">Issue not found.</div>
 
-  const voted = interactions?.votes.has(issue.id as string) ?? false
-  const confirmed = interactions?.confirmations.has(issue.id as string) ?? false
+  const voted = session ? (interactions?.votes.has(issue.id as string) ?? false) : demoVoted
+  const confirmed = session ? (interactions?.confirmations.has(issue.id as string) ?? false) : demoConfirmed
   const originalVideo = media?.find((m) => m.type === 'video')
   const originalPhoto = media?.find((m) => m.kind === 'original' && m.type === 'photo')
   const resolution = media?.find((m) => m.kind === 'resolution')
-
-  function requireAuthThen(fn: () => void) {
-    if (!session) { window.location.href = '/auth'; return }
-    fn()
-  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
@@ -120,7 +124,8 @@ export function IssueDetailPage() {
             <CardBody>
               <h2 className="font-display text-lg font-semibold">Discussion</h2>
               <div className="mt-3 space-y-4">
-                {comments?.length ? comments.map((c) => (
+                {(comments?.length || demoComments.length) ? <>
+                {comments?.map((c) => (
                   <div key={c.id} className="flex gap-3">
                     <Avatar name={c.author?.full_name ?? null} url={c.author?.avatar_url ?? null} size={32} />
                     <div className="min-w-0 flex-1">
@@ -128,21 +133,32 @@ export function IssueDetailPage() {
                       <p className="text-sm text-ink-soft">{c.body}</p>
                     </div>
                   </div>
-                )) : <p className="text-sm text-muted">No comments yet — start the conversation.</p>}
+                ))}
+                {demoComments.map((demoComment) => (
+                  <div key={demoComment.id} className="flex gap-3">
+                    <Avatar name="Vadodara Citizen" url={null} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm"><span className="font-semibold">Vadodara Citizen</span> <span className="text-xs text-muted">· just now</span></p>
+                      <p className="text-sm text-ink-soft">{demoComment.body}</p>
+                    </div>
+                  </div>
+                ))}
+                </> : <p className="text-sm text-muted">No comments yet — start the conversation.</p>}
               </div>
               <div className="mt-4 flex gap-2">
                 <Textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder={session ? 'Add a comment…' : 'Sign in to comment'}
+                  placeholder="Add a comment…"
                   className="min-h-11"
-                  disabled={!session}
                 />
                 <Button
                   size="icon"
                   disabled={!comment.trim()}
                   loading={addComment.isPending}
-                  onClick={() => requireAuthThen(() => addComment.mutate({ userId: session!.user.id, body: comment.trim() }, { onSuccess: () => setComment('') }))}
+                  onClick={() => session
+                    ? addComment.mutate({ userId: session.user.id, body: comment.trim() }, { onSuccess: () => setComment('') })
+                    : (setDemoComments((items) => [...items, { id: crypto.randomUUID(), body: comment.trim() }]), setComment(''))}
                 >
                   <Send className="size-4" />
                 </Button>
@@ -157,13 +173,17 @@ export function IssueDetailPage() {
           <Card>
             <CardBody className="flex items-center justify-center">
               <VoteControls
-                voteCount={issue.vote_count ?? 0}
-                confirmCount={issue.confirm_count ?? 0}
+                voteCount={(issue.vote_count ?? 0) + (demoVoted ? 1 : 0)}
+                confirmCount={(issue.confirm_count ?? 0) + (demoConfirmed ? 1 : 0)}
                 voted={voted}
                 confirmed={confirmed}
                 confirmDisabled={!!session && session.user.id === issue.reporter_id}
-                onVote={() => requireAuthThen(() => vote.mutate({ userId: session!.user.id, active: voted }))}
-                onConfirm={() => requireAuthThen(() => confirm.mutate({ userId: session!.user.id, active: confirmed }))}
+                onVote={() => session
+                  ? vote.mutate({ userId: session.user.id, active: voted })
+                  : setDemoVoted((value) => !value)}
+                onConfirm={() => session
+                  ? confirm.mutate({ userId: session.user.id, active: confirmed })
+                  : setDemoConfirmed((value) => !value)}
               />
             </CardBody>
           </Card>
@@ -186,6 +206,24 @@ export function IssueDetailPage() {
       </div>
     </div>
   )
+}
+
+function readDemoInteraction(issueId: string | undefined): { voted: boolean; confirmed: boolean; comments: Array<{ id: string; body: string }> } {
+  if (!issueId) return { voted: false, confirmed: false, comments: [] }
+  try {
+    const raw = window.localStorage.getItem(`communityhero-demo-interaction-${issueId}`)
+    if (!raw) return { voted: false, confirmed: false, comments: [] }
+    const data = JSON.parse(raw) as { voted?: unknown; confirmed?: unknown; comments?: unknown }
+    return {
+      voted: data.voted === true,
+      confirmed: data.confirmed === true,
+      comments: Array.isArray(data.comments)
+        ? data.comments.filter((comment): comment is { id: string; body: string } => typeof comment?.id === 'string' && typeof comment?.body === 'string')
+        : [],
+    }
+  } catch {
+    return { voted: false, confirmed: false, comments: [] }
+  }
 }
 
 function ValidationCard({ verdict, confidence, explanation, resolutionUrl }: {

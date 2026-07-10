@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, ExternalLink } from 'lucide-react'
-import type { IssueView } from '@/lib/issues'
+import type { IssueStatus, IssueView } from '@/lib/issues'
 import { NEXT_STATUSES, STATUS_META } from '@/lib/issues'
 import { computePriority } from '@/lib/priority'
 import { PriorityBadge } from '@/components/issue/PriorityBadge'
@@ -13,24 +13,32 @@ import { SeverityMeter } from '@/components/issue/SeverityMeter'
 import { CategoryIcon } from '@/components/issue/CategoryIcon'
 import { ResolveDialog } from './ResolveDialog'
 import { timeAgo } from '@/lib/utils'
+import { useAuth } from '@/features/auth/AuthProvider'
 
 export function TriageBoard({ issues }: { issues: IssueView[] }) {
+  const { session } = useAuth()
+  const [demoStatuses, setDemoStatuses] = useState<Record<string, IssueStatus>>({})
   // Sort by AI priority score (severity + community + context + age + emergency).
   const ordered = [...issues].sort((a, b) => computePriority(b).score - computePriority(a).score)
+  function updateDemoStatus(issueId: string, status: IssueStatus) {
+    setDemoStatuses((statuses) => ({ ...statuses, [issueId]: status }))
+  }
   return (
     <div className="space-y-2.5">
+      {!session ? <p className="rounded-lg bg-primary-tint px-3 py-2 text-xs font-medium text-primary">Public demo mode — triage changes update this dashboard locally.</p> : null}
       {ordered.map((issue) => (
-        <TriageRow key={issue.id} issue={issue} />
+        <TriageRow key={issue.id} issue={issue} demoStatus={demoStatuses[issue.id as string]} onDemoStatusChange={updateDemoStatus} />
       ))}
       {ordered.length === 0 ? <p className="py-10 text-center text-sm text-muted">No issues in the queue.</p> : null}
     </div>
   )
 }
 
-function TriageRow({ issue }: { issue: IssueView }) {
+function TriageRow({ issue, demoStatus, onDemoStatusChange }: { issue: IssueView; demoStatus?: IssueStatus; onDemoStatusChange: (issueId: string, status: IssueStatus) => void }) {
+  const { session } = useAuth()
   const change = useChangeStatus(issue.id as string)
   const [resolveOpen, setResolveOpen] = useState(false)
-  const status = issue.status ?? 'reported'
+  const status = demoStatus ?? issue.status ?? 'reported'
   const nextOptions = NEXT_STATUSES[status] ?? []
   const canResolve = status === 'in_progress'
 
@@ -57,13 +65,17 @@ function TriageRow({ issue }: { issue: IssueView }) {
 
       <div className="flex items-center gap-2">
         {canResolve ? (
-          <Button size="sm" onClick={() => setResolveOpen(true)}>
+          <Button size="sm" onClick={() => session ? setResolveOpen(true) : onDemoStatusChange(issue.id as string, 'resolved')}>
             <CheckCircle2 className="size-4" /> Resolve
           </Button>
         ) : nextOptions.length > 0 ? (
           <select
             value=""
-            onChange={(e) => { if (e.target.value) change.mutate({ status: e.target.value as never }) }}
+            onChange={(e) => {
+              if (!e.target.value) return
+              const next = e.target.value as IssueStatus
+              session ? change.mutate({ status: next }) : onDemoStatusChange(issue.id as string, next)
+            }}
             className="rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-xs font-medium focus:border-primary focus:outline-none"
           >
             <option value="">Move to…</option>

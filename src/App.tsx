@@ -12,8 +12,8 @@ const IssueDetailPage = lazy(() => import('@/pages/IssueDetailPage').then((m) =>
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then((m) => ({ default: m.LeaderboardPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
-const SuperAdminPage = lazy(() => import('@/pages/SuperAdminPage').then((m) => ({ default: m.SuperAdminPage })))
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((m) => ({ default: m.AuthPage })))
+const SuperAdminPage = lazy(() => import('@/pages/SuperAdminPage').then((m) => ({ default: m.SuperAdminPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 function Loading() {
@@ -34,11 +34,7 @@ export default function App() {
           <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route
             path="dashboard"
-            element={
-              <RequireRole roles={['authority', 'volunteer', 'superadmin']}>
-                <DashboardPage />
-              </RequireRole>
-            }
+            element={<RequireRole roles={['authority', 'volunteer', 'superadmin']}><DashboardPage /></RequireRole>}
           />
           <Route
             path="admin"
