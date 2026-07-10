@@ -3,6 +3,7 @@ import { Award, Lock, MapPin } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useBadges, useUserBadges } from '@/features/community/queries'
 import { useIssues } from '@/features/issues/queries'
+import { useMyInteractions } from '@/features/issues/userState'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
 import { Avatar } from '@/components/layout/Header'
@@ -20,6 +21,7 @@ export function ProfilePage() {
   const { data: badges } = useBadges()
   const { data: owned } = useUserBadges(session?.user.id)
   const { data: myIssues, isLoading } = useIssues({ reporterId: session?.user.id ?? '__public-demo__' })
+  const { data: interactions } = useMyInteractions(session?.user.id)
 
   const displayProfile = profile ?? {
     full_name: 'Vadodara Citizen',
@@ -148,6 +150,7 @@ export function ProfilePage() {
                 </span>
                 <p className="text-sm font-semibold">{b.name}</p>
                 <p className="text-xs text-muted">{b.description}</p>
+                {!earned ? <BadgeProgress slug={b.slug} threshold={b.threshold} reports={myIssues?.length ?? 0} confirmations={interactions?.confirmations.size ?? 0} points={profile?.points ?? 0} /> : null}
               </CardBody>
             </Card>
           )
@@ -175,6 +178,12 @@ export function ProfilePage() {
       )}
     </div>
   )
+}
+
+function BadgeProgress({ slug, threshold, reports, confirmations, points }: { slug: string; threshold: number; reports: number; confirmations: number; points: number }) {
+  const current = slug === 'verifier' ? confirmations : slug.startsWith('points_') ? points : reports
+  const progress = Math.min(100, Math.round((current / Math.max(1, threshold)) * 100))
+  return <div className="mt-2 text-left"><div className="h-1.5 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} /></div><p className="mt-1 text-[10px] text-muted">{Math.min(current, threshold)} of {threshold}</p></div>
 }
 
 function readDemoReport(): { title: string; description: string; severity: number; address: string | null } | null {
