@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Award, Lock, MapPin } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useBadges, useUserBadges } from '@/features/community/queries'
@@ -34,6 +34,10 @@ export function ProfilePage() {
   const [showUrlFallback, setShowUrlFallback] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const avatarFileRef = useRef<HTMLInputElement>(null)
+  const avatarPreviewUrl = useMemo(() => avatarFile ? URL.createObjectURL(avatarFile) : null, [avatarFile])
+  useEffect(() => () => {
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl)
+  }, [avatarPreviewUrl])
   const [caption, setCaption] = useState(() => String(session?.user.user_metadata?.caption ?? ''))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -76,7 +80,7 @@ export function ProfilePage() {
             <div>
               <Label>Profile photo</Label>
               <div className="flex items-center gap-3">
-                <Avatar name={profile.full_name} url={avatarFile ? URL.createObjectURL(avatarFile) : profile.avatar_url} size={48} />
+                <Avatar name={profile.full_name} url={avatarPreviewUrl ?? profile.avatar_url} size={48} />
                 <Button type="button" variant="outline" onClick={() => avatarFileRef.current?.click()}>
                   {avatarFile ? 'Choose another photo' : 'Choose photo'}
                 </Button>
