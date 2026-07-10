@@ -33,10 +33,14 @@ export function AuthPage() {
     setBusy(true)
     try {
       if (mode === 'signup') {
+        const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name } },
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: `${appUrl}/auth`,
+          },
         })
         if (error) throw error
         if (!data.session) {

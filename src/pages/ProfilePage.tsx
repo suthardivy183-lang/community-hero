@@ -43,6 +43,7 @@ export function ProfilePage() {
           <div className="flex-1">
             <h1 className="font-display text-2xl font-semibold">{displayProfile.full_name}</h1>
             <p className="text-sm text-muted">{ROLE_LABELS[displayProfile.role]}{!profile ? ' · Public demo' : ''}</p>
+            {caption ? <p className="mt-1 text-sm text-ink-soft">{caption}</p> : null}
             <div className="mt-1.5"><TrustBadge score={displayProfile.trust_score ?? 50} /></div>
           </div>
           <div className="text-right">
