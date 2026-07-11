@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight } from 'lucide-react'
+import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight, Pencil } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCategories } from '@/features/issues/queries'
 import { useSimilarIssues } from '@/features/issues/nearby'
@@ -29,6 +29,7 @@ export function ReportPage() {
   const [media, setMedia] = useState<ProcessedMedia | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [aiUsed, setAiUsed] = useState(false)
+  const [fillMode, setFillMode] = useState<'ai' | 'manual'>('ai')
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -73,6 +74,19 @@ export function ReportPage() {
     imageHash: media?.imageHash,
   })
 
+  async function analyzeMedia(processed: ProcessedMedia) {
+    setAnalyzing(true)
+    try {
+      const slugs = (categories ?? []).map((c) => c.slug)
+      const result = await analyzeReport({ imageBase64: processed.analysisBase64, mimeType: 'image/jpeg', hintCategorySlugs: slugs, context })
+      applyAnalysis(result)
+    } catch {
+      setError('AI analysis is unavailable right now — please fill the details manually.')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
   async function handleFile(file: File) {
     setError(null)
     let processed: ProcessedMedia
@@ -83,21 +97,7 @@ export function ReportPage() {
       return
     }
     setMedia(processed)
-    setAnalyzing(true)
-    try {
-      const slugs = (categories ?? []).map((c) => c.slug)
-      const result = await analyzeReport({
-        imageBase64: processed.analysisBase64,
-        mimeType: 'image/jpeg',
-        hintCategorySlugs: slugs,
-        context,
-      })
-      applyAnalysis(result)
-    } catch {
-      setError('AI analysis is unavailable right now — please fill the details manually.')
-    } finally {
-      setAnalyzing(false)
-    }
+    if (fillMode === 'ai') await analyzeMedia(processed)
   }
 
   function applyAnalysis(result: IssueAnalysis) {
@@ -184,6 +184,22 @@ export function ReportPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <Card>
+          <CardBody>
+            <p className="text-sm font-semibold text-ink">How would you like to fill the report?</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => setFillMode('ai')} className={`rounded-xl border p-3 text-left transition-colors ${fillMode === 'ai' ? 'border-primary bg-primary-tint/40' : 'border-border hover:border-border-strong'}`}>
+                <span className="flex items-center gap-2 font-semibold text-ink"><Sparkles className="size-4 text-primary" /> Let AI fill it</span>
+                <span className="mt-1 block text-xs text-muted">AI suggests the category, description, and severity from your media.</span>
+              </button>
+              <button type="button" onClick={() => setFillMode('manual')} className={`rounded-xl border p-3 text-left transition-colors ${fillMode === 'manual' ? 'border-primary bg-primary-tint/40' : 'border-border hover:border-border-strong'}`}>
+                <span className="flex items-center gap-2 font-semibold text-ink"><Pencil className="size-4 text-primary" /> I’ll fill it myself</span>
+                <span className="mt-1 block text-xs text-muted">Upload evidence only; you control every report detail.</span>
+              </button>
+            </div>
+          </CardBody>
+        </Card>
+
         {/* Photo */}
         <Card>
           <CardBody>
@@ -211,6 +227,7 @@ export function ReportPage() {
                     </div>
                   ) : null}
                 </div>
+                {fillMode === 'ai' && !aiUsed ? <Button type="button" variant="outline" size="sm" loading={analyzing} onClick={() => analyzeMedia(media)}><Sparkles className="size-4" /> Analyse with AI</Button> : null}
                 <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
                   <Camera className="size-4" /> Replace {media.kind}
                 </Button>
@@ -225,7 +242,7 @@ export function ReportPage() {
                   <Camera className="size-6" />
                 </span>
                 <span className="font-semibold text-ink">Take or upload a photo or video</span>
-                <span className="text-sm text-muted">AI auto-detects the category, writes the report & scores severity</span>
+                <span className="text-sm text-muted">{fillMode === 'ai' ? 'AI can detect the category, write the report & score severity' : 'You can fill the title, category, description & severity yourself'}</span>
               </button>
             )}
           </CardBody>
