@@ -14,10 +14,11 @@ export function StaffActions({ issue }: { issue: IssueView }) {
   const change = useChangeStatus(issue.id as string)
   const [resolveOpen, setResolveOpen] = useState(false)
   const status = issue.status ?? 'reported'
-  const isStaff = role === 'authority' || role === 'volunteer' || role === 'superadmin'
-  if (!isStaff) return null
+  const canVerify = role === 'authority' || role === 'volunteer' || role === 'superadmin'
+  const canManage = role === 'authority' || role === 'superadmin'
+  if (!canVerify) return null
 
-  const canVerify = status === 'reported'
+  const canVerifyIssue = status === 'reported'
   const canResolve = status === 'in_progress'
   const nextOptions = NEXT_STATUSES[status] ?? []
 
@@ -26,20 +27,20 @@ export function StaffActions({ issue }: { issue: IssueView }) {
       <CardBody className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Staff actions</p>
 
-        {canVerify ? (
+        {canVerifyIssue ? (
           <Button variant="outline" className="w-full justify-start" loading={change.isPending}
             onClick={() => change.mutate({ status: 'community_verified' })}>
             <BadgeCheck className="size-4" /> Verify on the ground
           </Button>
         ) : null}
 
-        {canResolve ? (
+        {canManage && canResolve ? (
           <Button className="w-full justify-start" onClick={() => setResolveOpen(true)}>
             <CheckCircle2 className="size-4" /> Resolve with proof
           </Button>
         ) : null}
 
-        {nextOptions.length > 0 ? (
+        {canManage && nextOptions.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {nextOptions.map((s) => (
               <Button key={s} size="sm" variant="ghost" onClick={() => change.mutate({ status: s })}>

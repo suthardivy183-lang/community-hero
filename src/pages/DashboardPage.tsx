@@ -25,7 +25,8 @@ export function DashboardPage() {
   const departmentId = role === 'authority' ? profile?.department_id ?? null : null
   const { data: issues, isLoading } = useIssues(departmentId ? { departmentId } : {})
 
-  const [tab, setTab] = useState('triage')
+  const [tab, setTab] = useState(role === 'volunteer' ? 'verify' : 'triage')
+  const canOperate = role === 'authority' || role === 'superadmin'
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
@@ -44,11 +45,7 @@ export function DashboardPage() {
         <EscalationBanner />
         <Tabs.Root value={tab} onValueChange={setTab}>
           <Tabs.List className="mb-5 flex gap-1 border-b border-border">
-            <Tabs.Trigger value="triage" className={cn(tabTrigger)}><ListChecks className="size-4" /> Triage queue</Tabs.Trigger>
-            <Tabs.Trigger value="impact" className={cn(tabTrigger)}><BarChart3 className="size-4" /> Impact</Tabs.Trigger>
-            <Tabs.Trigger value="map" className={cn(tabTrigger)}><Flame className="size-4" /> Hotspots</Tabs.Trigger>
-            <Tabs.Trigger value="route" className={cn(tabTrigger)}><RouteIcon className="size-4" /> Route</Tabs.Trigger>
-            <Tabs.Trigger value="social" className={cn(tabTrigger)}><Radio className="size-4" /> Social</Tabs.Trigger>
+            {canOperate ? <><Tabs.Trigger value="triage" className={cn(tabTrigger)}><ListChecks className="size-4" /> Triage queue</Tabs.Trigger><Tabs.Trigger value="impact" className={cn(tabTrigger)}><BarChart3 className="size-4" /> Impact</Tabs.Trigger><Tabs.Trigger value="map" className={cn(tabTrigger)}><Flame className="size-4" /> Hotspots</Tabs.Trigger><Tabs.Trigger value="route" className={cn(tabTrigger)}><RouteIcon className="size-4" /> Route</Tabs.Trigger><Tabs.Trigger value="social" className={cn(tabTrigger)}><Radio className="size-4" /> Social</Tabs.Trigger></> : null}
             {role === 'volunteer' || role === 'superadmin' ? <Tabs.Trigger value="verify" className={cn(tabTrigger)}><MapPinCheck className="size-4" /> Verify</Tabs.Trigger> : null}
           </Tabs.List>
 
