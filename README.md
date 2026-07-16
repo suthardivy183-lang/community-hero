@@ -1,82 +1,145 @@
-# Community Hero — Hyperlocal Problem Solver
+# CommunityHero — Hyperlocal Problem Solver
 
-Citizens **report → verify → track → resolve** local civic issues (potholes, water leaks,
-broken streetlights, garbage, infrastructure) with AI assistance, transparency, and
-accountability.
+> **Report. Verify. Resolve. Rebuild trust.**
 
-Built for the *Community Hero* hackathon. Demonstrates how AI helps communities address
-local challenges through smarter reporting, verification, tracking and resolution.
+CommunityHero is a deployed civic-tech platform that turns a citizen's photo, video, voice note, or manual complaint into a structured, geo-tagged issue that communities and authorities can track through to a verified resolution.
 
-## Highlights
+It is designed for potholes, water leaks, damaged streetlights, sanitation problems, unsafe infrastructure, and similar hyperlocal issues.
 
-- **AI photo triage** — snap a photo → Gemini auto-categorises it, writes a polished
-  description, scores severity (1–10), and routes it to the right department.
-- **Before/after AI validation** — when an authority uploads a resolution photo, AI compares
-  it with the original to confirm the fix is *genuine* (the accountability headline feature).
-- **"I've seen this too" de-duplication** — nearby same-category reports are detected via
-  PostGIS so neighbours confirm an existing issue instead of spamming duplicates.
-- **Live civic map** — clustered Leaflet/OpenStreetMap pins + severity heatmap, realtime updates.
-- **Predictive hotspots** — recurring problem zones clustered and summarised by AI for
-  proactive maintenance.
-- **Escalation** — issues unresolved past 3 / 7 days auto-escalate (hourly `pg_cron`).
-- **Gamification** — impact points, achievement badges, community leaderboard.
-- **Roles** — Citizen, Authority (department triage + impact dashboard), Volunteer verifier,
-  Super admin (role management).
-- **Multilingual** — English / हिन्दी / ગુજરાતી with a live switcher.
+**Live app:** [asli-solution-challenge.web.app](https://asli-solution-challenge.web.app)
 
-## Stack
+## Demo access
 
-React + Vite + TypeScript · Tailwind v4 (custom *civic-trust* design system) · TanStack Query ·
-React Leaflet + leaflet.heat · Recharts · react-i18next · **Supabase** (Postgres + PostGIS +
-Auth + Storage + Realtime + RLS + Edge Functions) · **Google Gemini 2.0 Flash** (via Edge
-Functions — the key never reaches the browser).
+> These are **demo-environment credentials only**. Do not reuse this password in a production deployment. Rotate or remove the account before sharing a production repository publicly.
 
-## Getting started
+| Role | Email | Password | What it can do |
+|---|---|---|---|
+| Super admin | `aanya.hero@gmail.com` | `demo123456` | Manage users and roles, SLA policies, audit history, all authority operations, verification, and platform configuration |
+
+## What the platform does
+
+### Citizen reporting and community participation
+
+- **AI-assisted or manual reporting** — after attaching a photo/video, citizens can either let AI suggest the title, category, description, severity, and department, or complete every field themselves.
+- **Voice reporting** — English, Hindi, and Gujarati speech can help populate a report.
+- **Geo-tagged live civic map** — map pins, heatmap, search, filters, clustering, browser geolocation, and a **Near me** recenter action.
+- **Duplicate-aware reporting** — nearby, same-category complaints can be joined instead of repeatedly creating the same issue.
+- **Issue transparency** — public timeline, category, location, severity, explainable priority, repair estimate, discussion, views, and community support.
+- **Citizen ownership** — reporters can edit or withdraw their own report while it is still in the `reported` state.
+- **Resolution re-verification** — residents other than the reporter can say whether a resolved issue is actually fixed; disputed fixes are visibly flagged.
+- **Profile and recognition** — profile photo upload, caption, points, badges with progress, report history, and shareable impact cards.
+
+### Authority workflow and accountability
+
+- **Role-based workflow** — Citizens report; volunteers verify on the ground; authorities triage, assign, and resolve; super admins govern the platform.
+- **Triage board** — priority-sorted queue, bulk status actions, department assignment, and resolution-with-proof flow.
+- **Evidence-backed closure** — authorities attach repair evidence; AI checks before/after media; citizens can re-verify closure.
+- **Explainable priority** — the score considers severity, community confirmation, reporter trust, nearby risk context, issue age, and emergency signals. It is not a black-box decision.
+- **SLA policies and escalation** — configurable category/default thresholds drive hourly escalation for overdue issues.
+- **Impact dashboard** — issue metrics, resolution trends, department performance, repair-budget rollups, route planning, CSV export, and Open311 feed.
+- **Super admin controls** — user role management, SLA policy controls, latest audit log, and platform-wide monitoring.
+- **Social intake** — staff can paste a public post from X, Facebook, WhatsApp, or another source and analyse it into a draft civic complaint; the mock feed is clearly labelled as demo data.
+
+## Permissions at a glance
+
+| Action | Citizen | Volunteer | Authority | Super admin |
+|---|:---:|:---:|:---:|:---:|
+| Create, support, comment on reports | Yes | Yes | Yes | Yes |
+| Edit/withdraw own `reported` complaint | Yes | Yes | Yes | Yes |
+| Verify an issue on the ground | No | Yes | Yes | Yes |
+| Acknowledge, assign, reject, progress, or resolve issues | No | No | Yes | Yes |
+| Configure SLA policies and roles; view audit logs | No | No | No | Yes |
+
+Database triggers and Row Level Security enforce status/department rules; the UI is not the only access control.
+
+## Status lifecycle
+
+```text
+reported → community_verified → acknowledged → in_progress
+         → resolved (repair proof) → ai_validated → closed
+```
+
+Every status change is recorded in `status_history`. A reporter may only withdraw their own complaint from `reported` to `rejected`.
+
+## AI: helpful, not autonomous
+
+Google Gemini is used securely through Supabase Edge Functions for:
+
+- analysing uploaded complaint media;
+- generating/editing structured report suggestions;
+- validating before/after repair evidence;
+- identifying civic hotspots; and
+- analysing manually pasted social posts.
+
+AI output is always editable. The app has graceful manual/mock fallbacks, so reporting remains available if the AI provider is unavailable. Operational decisions remain role-controlled and human-reviewed.
+
+## Technology
+
+| Area | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS, Radix UI, TanStack Query |
+| Maps and location | Leaflet, OpenStreetMap, PostGIS, browser geolocation |
+| Backend | Supabase PostgreSQL, Auth, Storage, Realtime, Row Level Security, Edge Functions |
+| AI | Google Gemini via server-side Supabase Edge Functions |
+| Analytics and visuals | Recharts, client-side CSV export, canvas impact-card generation |
+| Deployment | Firebase Hosting |
+| Mobile baseline | Web App Manifest and production service worker |
+
+## Local development
 
 ```bash
 npm install
-cp .env.example .env.local   # fill VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
+cp .env.example .env.local
 npm run dev
 ```
 
-The database schema, RLS, and Edge Functions are already provisioned on the linked Supabase
-project (see `supabase/migrations` and `supabase/functions`).
+Set these values in `.env.local`:
 
-## Required manual setup (Supabase dashboard)
+```bash
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-1. **Disable email confirmation** — Authentication → Sign In / Providers → Email → turn off
-   "Confirm email", so new signups can log in immediately for the demo.
-2. **Enable real AI** — Edge Functions → Secrets → add `GEMINI_API_KEY`. Without it, the
-   `ai-analyze`, `ai-validate`, and `ai-hotspots` functions return safe **mock** responses so
-   the app still works end-to-end.
-3. *(Optional)* **Google sign-in** — Authentication → Providers → enable Google with OAuth
-   credentials.
+Never commit `.env.local`, Gemini keys, service-role keys, or a real production admin password.
+
+### Supabase setup
+
+1. Apply the migrations in `supabase/migrations`.
+2. Deploy the Edge Functions in `supabase/functions`.
+3. Add `GEMINI_API_KEY` as a Supabase Edge Function secret to enable real AI responses.
+4. Configure the Auth site URL and allowed redirect URLs for the deployed app.
+5. For a demo with email/password signup, disable email confirmation in Supabase Auth if appropriate for the environment.
 
 ## Edge Functions
 
 | Function | Purpose |
-|----------|---------|
-| `ai-analyze` | Photo → category, title, description, severity, tags |
-| `ai-validate` | Before/after photo comparison → genuine / insufficient / unrelated + confidence |
-| `ai-hotspots` | Natural-language predictive maintenance briefing from issue clusters |
-
-All degrade gracefully to deterministic mocks when `GEMINI_API_KEY` is unset.
+|---|---|
+| `ai-analyze` | Media → suggested category, title, description, severity, tags, department |
+| `ai-validate` | Original + repair proof → genuine / insufficient / unrelated validation |
+| `ai-hotspots` | Recurring issue clusters → maintenance insight |
+| `ai-social` | Pasted social mention → analysed civic complaint draft |
+| `notify-department` | Department/status notification workflow |
+| `dept-scorecard` | Weekly department performance payload/email workflow |
+| `open311` | Open311-compatible public issue feed |
 
 ## Project structure
 
-```
+```text
 src/
-├── components/   ui primitives, layout, map, issue, admin
-├── features/     auth, issues, community, admin (queries + mutations)
-├── hooks/        geolocation, realtime
-├── lib/          supabase client, ai client, i18n, image, geocode, design types
-└── pages/        Home, Report, IssueDetail, Dashboard, Leaderboard, Profile, SuperAdmin, Auth
+├── components/   UI, reporting, map, issue, community, and admin components
+├── features/     auth, issues, community, notification, and admin data workflows
+├── hooks/        geolocation, realtime updates, and speech recognition
+├── lib/          AI client, priority, repair estimates, maps, geocoding, i18n
+└── pages/        landing, map, report, issue detail, profile, dashboard, admin, auth
 supabase/
-├── migrations/   schema, RLS, RPCs, triggers, escalation, seed
-└── functions/    ai-analyze, ai-validate, ai-hotspots
+├── migrations/   schema, RLS, triggers, SLA, feedback, audit and status rules
+└── functions/    server-side AI, notifications, scorecard and Open311 endpoints
 ```
 
-## Status flow
+## Demo talking points
 
-`reported → community_verified → acknowledged → in_progress → resolved → ai_validated → closed`
-(every transition is recorded in `status_history` for a transparent public timeline).
+1. A citizen uploads a pothole image and chooses AI-assisted or manual reporting.
+2. The issue appears on the map, can be joined as a duplicate, and earns community confirmation.
+3. An authority triages it by explainable priority and uploads repair proof.
+4. AI and residents re-verify whether it was actually fixed.
+5. SLA monitoring, audits, dashboards, and Open311 export make the process accountable end-to-end.
