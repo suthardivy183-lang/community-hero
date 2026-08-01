@@ -61,10 +61,10 @@ export function SuperAdminPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
-      <div className="mb-5 flex items-center gap-3">
+      <div className="mb-5 flex min-w-0 items-start gap-3 sm:items-center">
         <span className="grid size-11 place-items-center rounded-xl bg-status-escalated/15 text-status-escalated"><ShieldAlert className="size-6" /></span>
-        <div>
-          <h1 className="font-display text-3xl font-semibold">Platform administration</h1>
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold sm:text-3xl">Platform administration</h1>
           <p className="text-sm text-muted">Assign roles and route authorities to departments.</p>
         </div>
       </div>

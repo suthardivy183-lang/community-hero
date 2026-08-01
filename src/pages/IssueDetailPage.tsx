@@ -119,7 +119,7 @@ export function IssueDetailPage() {
               <MapPin className="size-4" /> {issue.address ?? 'Location pinned on map'}
             </p>
             {issue.reporter_name ? (
-              <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
                 Reported by <span className="font-medium text-ink">{issue.reporter_name}</span>
                 <TrustBadge score={issue.reporter_trust ?? 50} showScore={false} />
               </p>

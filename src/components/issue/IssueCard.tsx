@@ -9,7 +9,7 @@ import { timeAgo } from '@/lib/utils'
 
 export function IssueCard({ issue }: { issue: IssueView }) {
   return (
-    <Card interactive className="overflow-hidden">
+    <Card interactive className="min-w-0 overflow-hidden">
       <Link to={`/issue/${issue.id}`} className="block p-4">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-primary-tint text-primary">
@@ -17,7 +17,7 @@ export function IssueCard({ issue }: { issue: IssueView }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="line-clamp-1 font-display text-base font-semibold leading-snug">{issue.title}</h3>
+              <h3 className="min-w-0 flex-1 line-clamp-1 font-display text-base font-semibold leading-snug">{issue.title}</h3>
               <StatusBadge status={issue.status ?? 'reported'} />
             </div>
             <p className="mt-0.5 line-clamp-2 text-sm text-ink-soft">{issue.description}</p>

@@ -15,10 +15,10 @@ export function LeaderboardPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-      <div className="mb-5 flex items-center gap-3">
+      <div className="mb-5 flex min-w-0 items-start gap-3 sm:items-center">
         <span className="grid size-11 place-items-center rounded-xl bg-accent text-accent-fg"><Trophy className="size-6" /></span>
-        <div>
-          <h1 className="font-display text-3xl font-semibold">Community Heroes</h1>
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold sm:text-3xl">Community Heroes</h1>
           <p className="text-sm text-muted">Top contributors keeping the city accountable.</p>
         </div>
       </div>

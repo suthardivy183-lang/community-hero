@@ -99,8 +99,8 @@ export function HomePage() {
       </div>
 
       {/* Map + feed */}
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1.15fr]">
-        <section className="order-2 lg:order-1">
+      <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[1fr_1.15fr]">
+        <section className="order-2 min-w-0 lg:order-1">
           {!issues ? (
             <div className="grid h-64 place-items-center"><Spinner /></div>
           ) : issues.length > 0 ? (
@@ -114,18 +114,18 @@ export function HomePage() {
           )}
         </section>
 
-        <section className="order-1 lg:order-2">
+        <section className="order-1 min-w-0 lg:order-2">
           <div className="sticky top-20 overflow-hidden rounded-[var(--radius-card)] border border-border shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between border-b border-border bg-surface px-3 py-2">
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-surface px-3 py-2">
               <div className="inline-flex rounded-lg bg-surface-sunk p-0.5">
                 <ModeButton active={mapMode === 'pins'} onClick={() => setMapMode('pins')} icon={<MapIcon className="size-4" />}>{t('home.pins')}</ModeButton>
                 <ModeButton active={mapMode === 'heat'} onClick={() => setMapMode('heat')} icon={<Flame className="size-4" />}>{t('home.heatmap')}</ModeButton>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-1 sm:gap-2">
                 <Button size="sm" variant="ghost" onClick={locate} loading={locating}>
                   <LocateFixed className="size-4" /> {t('home.nearMe')}
                 </Button>
-                <Button size="sm" onClick={() => navigate('/report')}>
+                <Button size="sm" className="hidden sm:inline-flex" onClick={() => navigate('/report')}>
                   <Plus className="size-4" /> Report issue
                 </Button>
               </div>

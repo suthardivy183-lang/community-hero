@@ -49,7 +49,7 @@ export function VerifyPanel() {
       </CardBody>
     </Card>
     {notice ? <p className="rounded-lg bg-primary-tint px-3 py-2 text-sm text-primary">{notice}</p> : null}
-    <div className="flex items-center justify-between"><div><h2 className="font-display text-xl font-semibold">Nearby tasks</h2><p className="text-sm text-muted">Reported issues ready for an on-the-ground check.</p></div><span className="rounded-full bg-primary-tint px-2.5 py-1 text-xs font-semibold text-primary">{ordered.length} open</span></div>
+    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="font-display text-xl font-semibold">Nearby tasks</h2><p className="text-sm text-muted">Reported issues ready for an on-the-ground check.</p></div><span className="shrink-0 rounded-full bg-primary-tint px-2.5 py-1 text-xs font-semibold text-primary">{ordered.length} open</span></div>
     {isLoading ? <div className="grid h-32 place-items-center"><Spinner /></div> : ordered.length === 0 ? <Card><CardBody><p className="text-center text-sm text-muted">No reported issues in this viewport.</p></CardBody></Card> : ordered.map((issue) => <VerifyRow key={issue.id} issue={issue} distance={distanceFrom(location.coords, issue)} busy={busy === issue.id} onVerify={() => verify(issue)} onCannotFind={() => cannotFind(issue)} />)}
   </div>
 }

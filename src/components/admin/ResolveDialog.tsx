@@ -47,7 +47,7 @@ export function ResolveDialog({ issue, open, onOpenChange }: ResolveDialogProps)
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-card)] border border-border bg-surface p-6 shadow-[var(--shadow-pop)]">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-card)] border border-border bg-surface p-4 shadow-[var(--shadow-pop)] sm:p-6">
           <div className="mb-1 flex items-center justify-between">
             <Dialog.Title className="font-display text-xl font-semibold">Resolve with proof</Dialog.Title>
             <Dialog.Close className="rounded-lg p-1 text-muted hover:bg-surface-sunk"><X className="size-5" /></Dialog.Close>
@@ -56,7 +56,7 @@ export function ResolveDialog({ issue, open, onOpenChange }: ResolveDialogProps)
             Upload an "after" photo. AI compares it with the original to verify the fix is genuine.
           </Dialog.Description>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <figure>
               <figcaption className="mb-1 text-xs font-semibold text-muted">Before</figcaption>
               {original ? (

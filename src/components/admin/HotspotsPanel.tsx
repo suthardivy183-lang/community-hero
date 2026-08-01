@@ -31,8 +31,8 @@ export function HotspotsPanel({ issues }: { issues: IssueView[] }) {
     <div className="space-y-5">
       <Card className="border-status-validated/30 bg-status-validated/5">
         <CardBody>
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-status-validated">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="flex min-w-0 items-center gap-2 font-display text-lg font-semibold text-status-validated">
               <Sparkles className="size-5" /> Predictive maintenance briefing
             </h3>
             <Button size="sm" variant="outline" onClick={generate} loading={loading} disabled={clusters.length === 0}>

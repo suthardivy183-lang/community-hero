@@ -20,7 +20,8 @@ export function RoutePlanner({ issues }: { issues: IssueView[] }) {
   function toggle(id: string) {
     setSelected((s) => {
       const next = new Set(s)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -48,9 +49,9 @@ export function RoutePlanner({ issues }: { issues: IssueView[] }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
       <div>
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-sm text-muted">Select issues, then optimise the repair route.</p>
-          <Button size="sm" onClick={optimize} disabled={selected.size < 2 || loading}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 text-sm text-muted">Select issues, then optimise the repair route.</p>
+          <Button className="shrink-0" size="sm" onClick={optimize} disabled={selected.size < 2 || loading}>
             {loading ? <Loader2 className="size-4 animate-spin" /> : <RouteIcon className="size-4" />}
             Optimise ({selected.size})
           </Button>

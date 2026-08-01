@@ -15,9 +15,9 @@ export function AppShell() {
   }, [profile?.language])
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen min-w-0 flex-col">
       <Header />
-      <main className="flex-1">
+      <main className="min-w-0 flex-1">
         <Outlet />
       </main>
       <MobileNav />
@@ -34,7 +34,7 @@ const mobileLink = ({ isActive }: { isActive: boolean }) =>
 function MobileNav() {
   const { t } = useTranslation()
   return (
-    <nav className="sticky bottom-0 z-40 grid grid-cols-4 border-t border-border bg-paper/95 backdrop-blur sm:hidden">
+    <nav className="sticky bottom-0 z-40 grid grid-cols-4 border-t border-border bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       <NavLink to="/map" className={mobileLink}>
         <MapPin className="size-5" /> {t('nav.map')}
       </NavLink>

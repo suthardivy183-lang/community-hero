@@ -29,17 +29,17 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-paper/85 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
+      <div className="mx-auto flex h-16 max-w-7xl min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-6">
+        <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="CommunityHero home">
           <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-fg shadow-[var(--shadow-card)]">
             <Sparkles className="size-5" />
           </span>
-          <span className="font-display text-xl font-semibold tracking-tight">
+          <span className="hidden font-display text-xl font-semibold tracking-tight sm:inline">
             Community<span className="text-primary">Hero</span>
           </span>
         </Link>
 
-        <nav className="ml-4 hidden items-center gap-1 sm:flex">
+        <nav className="ml-4 hidden items-center gap-1 lg:flex">
           <NavLink to="/map" className={navLinkClass}>
             <MapPin className="size-4" /> {t('nav.map')}
           </NavLink>
@@ -51,7 +51,7 @@ export function Header() {
           </NavLink>
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <NotificationBell />
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
@@ -70,7 +70,7 @@ export function Header() {
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
 
-          <Button size="sm" onClick={() => navigate('/report')}>
+          <Button size="sm" className="hidden lg:inline-flex" onClick={() => navigate('/report')}>
             <Plus className="size-4" /> {t('nav.report')}
           </Button>
 

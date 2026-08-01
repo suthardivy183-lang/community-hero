@@ -60,7 +60,7 @@ export function VoiceComplaint({ categorySlugs, onExtract }: VoiceComplaintProps
           </select>
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {listening ? (
             <Button type="button" variant="danger" size="sm" onClick={stop}>
               <Square className="size-4" /> Stop
