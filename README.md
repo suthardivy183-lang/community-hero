@@ -143,3 +143,13 @@ supabase/
 3. An authority triages it by explainable priority and uploads repair proof.
 4. AI and residents re-verify whether it was actually fixed.
 5. SLA monitoring, audits, dashboards, and Open311 export make the process accountable end-to-end.
+
+
+   NEXT TARGET
+
+   1. video detection with potehole detection model open source
+   2. geotagging feature
+   3. message notification
+   4. some attraction for civilian comminutyHERO
+   5. live testing with motion video and blurry image
+   6. like and dislike on profile 
