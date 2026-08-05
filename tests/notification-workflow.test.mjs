@@ -29,6 +29,7 @@ test('new escalations dispatch the department email function', async () => {
   assert.match(sql, /net\.http_post/i)
   assert.match(sql, /notify-department/i)
   assert.match(sql, /'escalation'/i)
+  assert.match(sql, /cron\.schedule/i)
 })
 
 test('notification realtime and frontend reads are scoped to the signed-in user', async () => {
