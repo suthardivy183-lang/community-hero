@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight, Pencil } from 'lucide-react'
+import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight, Pencil, Video, ImagePlus } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCategories } from '@/features/issues/queries'
 import { useSimilarIssues } from '@/features/issues/nearby'
@@ -49,7 +49,9 @@ export function ReportPage() {
   const [error, setError] = useState<string | null>(null)
   const [demoSubmitted, setDemoSubmitted] = useState(false)
   const [demoJoinedIssueId, setDemoJoinedIssueId] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const photoCameraRef = useRef<HTMLInputElement>(null)
+  const videoCameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { locate() }, [locate])
   useEffect(() => { if (geoCoords) setCoords(geoCoords) }, [geoCoords])
@@ -98,6 +100,12 @@ export function ReportPage() {
     }
     setMedia(processed)
     if (fillMode === 'ai') await analyzeMedia(processed)
+  }
+
+  function handleMediaSelection(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (file) void handleFile(file)
+    event.target.value = ''
   }
 
   function applyAnalysis(result: IssueAnalysis) {
@@ -203,14 +211,9 @@ export function ReportPage() {
         {/* Photo */}
         <Card>
           <CardBody>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,video/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-            />
+            <input ref={photoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleMediaSelection} />
+            <input ref={videoCameraRef} type="file" accept="video/*" capture="environment" className="hidden" onChange={handleMediaSelection} />
+            <input ref={galleryRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaSelection} />
             {media ? (
               <div className="space-y-3">
                 <div className="relative overflow-hidden rounded-xl">
@@ -228,23 +231,28 @@ export function ReportPage() {
                   ) : null}
                 </div>
                 {fillMode === 'ai' && !aiUsed ? <Button type="button" variant="outline" size="sm" loading={analyzing} onClick={() => analyzeMedia(media)}><Sparkles className="size-4" /> Analyse with AI</Button> : null}
-                <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                  <Camera className="size-4" /> Replace {media.kind}
-                </Button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border-strong py-12 text-center transition-colors hover:border-primary hover:bg-primary-tint/40"
-              >
+              <div className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border-strong py-10 text-center">
                 <span className="grid size-12 place-items-center rounded-full bg-primary-tint text-primary">
                   <Camera className="size-6" />
                 </span>
-                <span className="font-semibold text-ink">Take or upload a photo or video</span>
+                <span className="font-semibold text-ink">Add a photo or video</span>
                 <span className="text-sm text-muted">{fillMode === 'ai' ? 'AI can detect the category, write the report & score severity' : 'You can fill the title, category, description & severity yourself'}</span>
-              </button>
+              </div>
             )}
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <Button type="button" onClick={() => photoCameraRef.current?.click()} disabled={analyzing}>
+                <Camera className="size-4" /> Take photo
+              </Button>
+              <Button type="button" variant="outline" onClick={() => videoCameraRef.current?.click()} disabled={analyzing}>
+                <Video className="size-4" /> Record video
+              </Button>
+              <Button type="button" variant="outline" onClick={() => galleryRef.current?.click()} disabled={analyzing}>
+                <ImagePlus className="size-4" /> Choose from gallery
+              </Button>
+            </div>
+            <p className="mt-2 text-center text-xs text-muted">Camera options open the rear camera on supported phones.</p>
           </CardBody>
         </Card>
 

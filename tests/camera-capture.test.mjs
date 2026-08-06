@@ -17,7 +17,8 @@ test('reporting offers separate rear-camera photo, video, and gallery inputs', a
 
 test('gallery input does not force camera capture', async () => {
   const source = await readFile(reportPagePath, 'utf8')
-  const galleryInput = source.match(/<input[\s\S]*?ref=\{galleryRef\}[\s\S]*?\/>/)?.[0]
+  const inputs = [...source.matchAll(/<input[\s\S]*?\/>/g)].map((match) => match[0])
+  const galleryInput = inputs.find((input) => /ref=\{galleryRef\}/.test(input))
 
   assert.ok(galleryInput, 'gallery input should exist')
   assert.doesNotMatch(galleryInput, /capture=/)
