@@ -474,6 +474,7 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          dedupe_key: string | null
           id: string
           issue_id: string | null
           read: boolean
@@ -483,6 +484,7 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           issue_id?: string | null
           read?: boolean
@@ -492,6 +494,7 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           issue_id?: string | null
           read?: boolean

@@ -36,6 +36,7 @@ It is designed for potholes, water leaks, damaged streetlights, sanitation probl
 - **Evidence-backed closure** — authorities attach repair evidence; AI checks before/after media; citizens can re-verify closure.
 - **Explainable priority** — the score considers severity, community confirmation, reporter trust, nearby risk context, issue age, and emergency signals. It is not a black-box decision.
 - **SLA policies and escalation** — configurable category/default thresholds drive hourly escalation for overdue issues.
+- **Role-aware notifications** — citizens receive realtime status and rejection updates; assigned authorities receive escalation alerts, with level-2 alerts also sent to superadmins and the department email workflow.
 - **Impact dashboard** — issue metrics, resolution trends, department performance, repair-budget rollups, route planning, CSV export, and Open311 feed.
 - **Super admin controls** — user role management, SLA policy controls, latest audit log, and platform-wide monitoring.
 - **Social intake** — staff can paste a public post from X, Facebook, WhatsApp, or another source and analyse it into a draft civic complaint; the mock feed is clearly labelled as demo data.
@@ -109,6 +110,7 @@ Never commit `.env.local`, Gemini keys, service-role keys, or a real production 
 3. Add `GEMINI_API_KEY` as a Supabase Edge Function secret to enable real AI responses.
 4. Configure the Auth site URL and allowed redirect URLs for the deployed app.
 5. For a demo with email/password signup, disable email confirmation in Supabase Auth if appropriate for the environment.
+6. Deploy `notify-department` without JWT verification for database webhook delivery, and set `RESEND_API_KEY`, `RESEND_FROM`, and department contact emails to enable real escalation email. Without Resend, the function remains mock-safe and returns the generated delivery payload.
 
 ## Edge Functions
 
