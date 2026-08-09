@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:camera": "node --test tests/camera-capture.test.mjs",
+    "test:notifications": "node --test tests/notification-workflow.test.mjs",
+    "test:grievance": "node --test tests/grievance-p0.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

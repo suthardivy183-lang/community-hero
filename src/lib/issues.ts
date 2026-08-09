@@ -18,11 +18,13 @@ interface StatusMeta {
 export const STATUS_META: Record<IssueStatus, StatusMeta> = {
   reported: { label: 'Reported', tone: 'status-reported', description: 'Awaiting community verification', order: 0 },
   community_verified: { label: 'Verified', tone: 'status-verified', description: 'Confirmed by neighbours', order: 1 },
+  pending_information: { label: 'Information needed', tone: 'status-acknowledged', description: 'The department needs more details', order: 2 },
   acknowledged: { label: 'Acknowledged', tone: 'status-acknowledged', description: 'Seen by the department', order: 2 },
   in_progress: { label: 'In Progress', tone: 'status-progress', description: 'Work underway', order: 3 },
   resolved: { label: 'Resolved', tone: 'status-resolved', description: 'Marked fixed — awaiting proof', order: 4 },
   ai_validated: { label: 'AI Validated', tone: 'status-validated', description: 'Fix confirmed by AI comparison', order: 5 },
   closed: { label: 'Closed', tone: 'status-closed', description: 'Resolved and closed', order: 6 },
+  reopened: { label: 'Reopened', tone: 'status-progress', description: 'The citizen says the issue still needs action', order: 4 },
   rejected: { label: 'Rejected', tone: 'status-rejected', description: 'Not actionable', order: 7 },
 }
 
@@ -30,12 +32,15 @@ export const ALL_STATUSES = Object.keys(STATUS_META) as IssueStatus[]
 
 /** Forward transitions an authority can move an issue through. */
 export const NEXT_STATUSES: Partial<Record<IssueStatus, IssueStatus[]>> = {
-  reported: ['acknowledged', 'rejected'],
-  community_verified: ['acknowledged', 'rejected'],
-  acknowledged: ['in_progress', 'rejected'],
-  in_progress: ['resolved'],
-  resolved: ['ai_validated', 'closed', 'in_progress'],
-  ai_validated: ['closed'],
+  reported: ['acknowledged', 'pending_information', 'rejected'],
+  community_verified: ['acknowledged', 'pending_information', 'rejected'],
+  pending_information: ['acknowledged', 'rejected'],
+  acknowledged: ['in_progress', 'pending_information', 'rejected'],
+  in_progress: ['resolved', 'pending_information'],
+  resolved: ['ai_validated', 'closed', 'in_progress', 'reopened'],
+  ai_validated: ['closed', 'reopened'],
+  closed: ['reopened'],
+  reopened: ['acknowledged', 'in_progress'],
 }
 
 export function severityTone(severity: number): string {

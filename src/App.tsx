@@ -8,6 +8,7 @@ import { LandingPage } from '@/pages/LandingPage'
 // Code-split the heavier / less-frequent routes.
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
 const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
+const GrievanceAssistantPage = lazy(() => import('@/pages/GrievanceAssistantPage').then((m) => ({ default: m.GrievanceAssistantPage })))
 const IssueDetailPage = lazy(() => import('@/pages/IssueDetailPage').then((m) => ({ default: m.IssueDetailPage })))
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then((m) => ({ default: m.LeaderboardPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="issue/:id" element={<IssueDetailPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="report" element={<RequireAuth><ReportPage /></RequireAuth>} />
+          <Route path="grievance" element={<RequireAuth><GrievanceAssistantPage /></RequireAuth>} />
           <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route
             path="dashboard"

@@ -7,6 +7,8 @@ import {
 import { useMyInteractions } from '@/features/issues/userState'
 import { useToggleVote, useToggleConfirm, useAddComment, useSubmitFixFeedback, useChangeStatus } from '@/features/issues/mutations'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useComplaintReference, useGrievanceMessages } from '@/features/grievances/queries'
+import { useSendGrievanceMessage } from '@/features/grievances/mutations'
 import { mediaUrl, supabase } from '@/lib/supabase'
 import { STATUS_META } from '@/lib/issues'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -27,7 +29,7 @@ import { timeAgo } from '@/lib/utils'
 
 export function IssueDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { session } = useAuth()
+  const { session, role } = useAuth()
   const { data: issue, isLoading } = useIssue(id)
   const { data: media } = useIssueMedia(id)
   const { data: comments } = useComments(id)
@@ -36,13 +38,17 @@ export function IssueDetailPage() {
   const { data: fixFeedback } = useFixFeedback(id, session?.user.id)
   const { data: categories } = useCategories()
   const { data: interactions } = useMyInteractions(session?.user.id)
+  const { data: complaintNumber } = useComplaintReference(id)
+  const { data: grievanceMessages } = useGrievanceMessages(id)
 
   const vote = useToggleVote(id ?? '')
   const confirm = useToggleConfirm(id ?? '')
   const addComment = useAddComment(id ?? '')
   const submitFixFeedback = useSubmitFixFeedback(id ?? '')
   const withdraw = useChangeStatus(id ?? '')
+  const sendGrievanceMessage = useSendGrievanceMessage(id ?? '')
   const [comment, setComment] = useState('')
+  const [grievanceMessage, setGrievanceMessage] = useState('')
   const storedDemo = readDemoInteraction(id)
   const [demoVoted, setDemoVoted] = useState(storedDemo.voted)
   const [demoConfirmed, setDemoConfirmed] = useState(storedDemo.confirmed)
@@ -69,6 +75,10 @@ export function IssueDetailPage() {
   const activeMedia = originalMedia.find((item) => item.id === selectedMediaId) ?? originalMedia[0]
   const activePoster = originalMedia.find((item) => item.type === 'photo')
   const resolution = media?.find((m) => m.kind === 'resolution')
+  const isReporter = session?.user.id === issue.reporter_id
+  const isStaff = role === 'authority' || role === 'superadmin'
+  const canUseGrievanceConversation = !!session && (isReporter || isStaff)
+  const canReopen = isReporter && ['resolved', 'ai_validated', 'closed'].includes(issue.status ?? '')
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
@@ -115,6 +125,7 @@ export function IssueDetailPage() {
               {fixFeedback && fixFeedback.no >= 3 ? <span className="rounded-full bg-status-rejected/15 px-2.5 py-1 text-xs font-semibold text-status-rejected">Disputed by residents</span> : null}
             </div>
             <h1 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">{issue.title}</h1>
+            {complaintNumber ? <p className="mt-2 inline-flex rounded-lg bg-surface-sunk px-2.5 py-1 font-mono text-xs font-semibold text-ink-soft">Complaint number: {complaintNumber}</p> : null}
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
               <MapPin className="size-4" /> {issue.address ?? 'Location pinned on map'}
             </p>
@@ -143,6 +154,7 @@ export function IssueDetailPage() {
                 )}
               </div>
             ) : null}
+            {canReopen ? <div className="mt-4 rounded-xl border border-status-rejected/30 bg-status-rejected/5 p-3"><p className="mb-2 text-sm text-ink-soft">Is this grievance still unresolved?</p><Button size="sm" variant="outline" loading={withdraw.isPending} onClick={() => withdraw.mutate({ status: 'reopened' })}>Reopen grievance</Button></div> : null}
           </div>
 
           {/* AI explainable priority */}
@@ -181,6 +193,28 @@ export function IssueDetailPage() {
                     className="inline-flex h-10 items-center gap-1.5 rounded-full border border-status-rejected bg-surface px-3.5 font-semibold text-status-rejected transition-all hover:bg-status-rejected hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                   ><ThumbsDown className="size-4" /> Still broken <span className="font-mono">{fixFeedback?.no ?? 0}</span></button>
                   {fixFeedback?.userVote != null ? <span className="text-xs text-muted">Thanks for verifying this repair.</span> : null}
+                </div>
+              </CardBody>
+            </Card>
+          ) : null}
+
+          {canUseGrievanceConversation ? (
+            <Card className="border-primary/25">
+              <CardBody>
+                <h2 className="font-display text-lg font-semibold">Conversation with department</h2>
+                <p className="mt-1 text-sm text-muted">Private messages between the reporter and the responsible authority.</p>
+                <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
+                  {grievanceMessages?.length ? grievanceMessages.map((message) => (
+                    <div key={message.id} className={`rounded-xl px-3 py-2.5 text-sm ${message.sender_id === session?.user.id ? 'ml-8 bg-primary text-primary-fg' : 'mr-8 bg-surface-sunk text-ink'}`}>
+                      <p className="mb-1 text-xs font-semibold opacity-80">{message.sender_id === session?.user.id ? 'You' : message.sender?.full_name ?? 'Department'}</p>
+                      <p>{message.body}</p>
+                      <p className="mt-1 text-[11px] opacity-70">{timeAgo(message.created_at)}</p>
+                    </div>
+                  )) : <p className="text-sm text-muted">No private messages yet. Ask for an update or provide the requested details.</p>}
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Textarea value={grievanceMessage} onChange={(event) => setGrievanceMessage(event.target.value)} placeholder={isStaff ? 'Send an update or request more information…' : 'Write a message to the department…'} className="min-h-11" />
+                  <Button size="icon" disabled={!grievanceMessage.trim()} loading={sendGrievanceMessage.isPending} onClick={() => sendGrievanceMessage.mutate({ senderId: session!.user.id, body: grievanceMessage.trim(), messageType: isStaff ? 'information_request' : 'message' }, { onSuccess: () => setGrievanceMessage('') })}><Send className="size-4" /></Button>
                 </div>
               </CardBody>
             </Card>

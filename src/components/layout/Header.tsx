@@ -70,7 +70,7 @@ export function Header() {
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
 
-          <Button size="sm" className="hidden lg:inline-flex" onClick={() => navigate('/report')}>
+          <Button size="sm" className="hidden lg:inline-flex" onClick={() => navigate('/grievance')}>
             <Plus className="size-4" /> {t('nav.report')}
           </Button>
 

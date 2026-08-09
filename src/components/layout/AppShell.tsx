@@ -38,7 +38,7 @@ function MobileNav() {
       <NavLink to="/map" className={mobileLink}>
         <MapPin className="size-5" /> {t('nav.map')}
       </NavLink>
-      <NavLink to="/report" className={mobileLink}>
+      <NavLink to="/grievance" className={mobileLink}>
         <Plus className="size-5" /> {t('nav.report')}
       </NavLink>
       <NavLink to="/leaderboard" className={mobileLink}>

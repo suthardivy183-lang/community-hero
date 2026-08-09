@@ -306,6 +306,48 @@ export type Database = {
           },
         ]
       }
+      grievance_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          issue_id: string
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          issue_id: string
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          issue_id?: string
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grievance_messages_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grievance_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_media: {
         Row: {
           ai_analysis: Json
@@ -369,6 +411,7 @@ export type Database = {
           category_id: string | null
           closed_at: string | null
           comment_count: number
+          complaint_number: string | null
           confirm_count: number
           created_at: string
           department_id: string | null
@@ -397,6 +440,7 @@ export type Database = {
           category_id?: string | null
           closed_at?: string | null
           comment_count?: number
+          complaint_number?: string | null
           confirm_count?: number
           created_at?: string
           department_id?: string | null
@@ -425,6 +469,7 @@ export type Database = {
           category_id?: string | null
           closed_at?: string | null
           comment_count?: number
+          complaint_number?: string | null
           confirm_count?: number
           created_at?: string
           department_id?: string | null
@@ -474,6 +519,7 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          dedupe_key: string | null
           id: string
           issue_id: string | null
           read: boolean
@@ -483,6 +529,7 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           issue_id?: string | null
           read?: boolean
@@ -492,6 +539,7 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           issue_id?: string | null
           read?: boolean
@@ -1046,9 +1094,31 @@ export type Database = {
         }
         Returns: string
       }
+      create_public_grievance: {
+        Args: {
+          p_address?: string
+          p_ai_meta?: Json
+          p_category_id: string
+          p_department_id: string | null
+          p_description: string
+          p_language?: string
+          p_lat: number
+          p_lng: number
+          p_severity: number
+          p_title: string
+        }
+        Returns: {
+          complaint_number: string
+          issue_id: string
+        }[]
+      }
       current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      my_complaint_reference: {
+        Args: { p_issue_id: string }
+        Returns: string
       }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
@@ -1933,6 +2003,8 @@ export type Database = {
         | "ai_validated"
         | "closed"
         | "rejected"
+        | "pending_information"
+        | "reopened"
       media_kind: "original" | "resolution"
       media_type: "photo" | "video"
       user_role: "citizen" | "authority" | "volunteer" | "superadmin"
@@ -2082,6 +2154,8 @@ export const Constants = {
         "ai_validated",
         "closed",
         "rejected",
+        "pending_information",
+        "reopened",
       ],
       media_kind: ["original", "resolution"],
       media_type: ["photo", "video"],

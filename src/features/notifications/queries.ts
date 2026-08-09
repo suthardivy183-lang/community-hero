@@ -10,9 +10,11 @@ export function useNotifications(userId: string | undefined) {
     enabled: !!userId,
     queryKey: ['notifications', userId],
     queryFn: async (): Promise<Notification[]> => {
+      if (!userId) return []
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(30)
       if (error) throw error
