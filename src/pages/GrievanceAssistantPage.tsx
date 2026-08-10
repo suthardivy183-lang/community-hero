@@ -47,7 +47,7 @@ export function GrievanceAssistantPage() {
   const [coords, setCoords] = useState<Coords>(DEFAULT_CENTER)
   const [address, setAddress] = useState<string | null>(null)
   const [analysing, setAnalysing] = useState(false)
-  const [assistantReply, setAssistantReply] = useState('Hi! Tell me what happened in the language you prefer. I will help identify the department and prepare your grievance.')
+  const [assistantReply, setAssistantReply] = useState('Describe the problem in your own words. AI will suggest the service area, responsible department and urgency for you to review.')
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<{ issueId: string; complaintNumber: string } | null>(null)
 
@@ -90,7 +90,7 @@ export function GrievanceAssistantPage() {
     try {
       applyAnalysis(await extractFromText({ text: message, hintCategorySlugs: categories.map((item) => item.slug) }))
     } catch {
-      setError('The AI assistant is unavailable right now. You can still choose the department and lodge your grievance manually.')
+      setError('AI analysis is unavailable right now. You can still choose the department and lodge your grievance manually.')
     } finally {
       setAnalysing(false)
     }
@@ -157,8 +157,8 @@ export function GrievanceAssistantPage() {
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Multilingual AI chatbot</p>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Chat with CommunityHero AI</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Report a grievance</p>
+          <h1 className="mt-1 font-display text-3xl font-semibold">Describe it. We’ll find the department.</h1>
           <p className="mt-2 text-sm text-muted">Type or speak in English, हिन्दी, ગુજરાતી, मराठी, বাংলা, தமிழ் and more. A photo is optional for this route.</p>
         </div>
         <Bot className="mt-1 size-9 shrink-0 text-primary" />
@@ -186,7 +186,7 @@ export function GrievanceAssistantPage() {
           {speech.error ? <p className="mt-2 text-xs text-status-rejected">Voice input: {speech.error}</p> : null}
           <div className="mt-4 rounded-xl border border-primary/20 bg-surface p-3" aria-live="polite">
             <div className="flex items-center justify-between gap-3">
-              <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Bot className="size-4" /> Assistant reply</p>
+              <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Bot className="size-4" /> AI analysis</p>
               <Button type="button" variant="ghost" size="sm" onClick={speakReply}><Volume2 className="size-4" /> Read aloud</Button>
             </div>
             <p className="mt-2 text-sm text-ink-soft">{assistantReply}</p>
