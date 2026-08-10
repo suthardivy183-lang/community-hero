@@ -1167,6 +1167,19 @@ export type Database = {
         Args: { p_issue_id: string }
         Returns: string
       }
+      my_grievance_summaries: {
+        Args: never
+        Returns: {
+          id: string
+          title: string
+          description: string
+          category_name: string | null
+          department_name: string | null
+          status: Database["public"]["Enums"]["issue_status"]
+          created_at: string
+          resolved_at: string | null
+        }[]
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {

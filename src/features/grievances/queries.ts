@@ -1,5 +1,30 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import type { IssueStatus } from '@/lib/issues'
+
+export interface MyGrievanceSummary {
+  id: string
+  title: string
+  description: string
+  category_name: string | null
+  department_name: string | null
+  status: IssueStatus
+  created_at: string
+  resolved_at: string | null
+}
+
+/** Security-definer RPC: the database, not a client filter, limits results to auth.uid(). */
+export function useMyGrievanceSummaries(userId?: string) {
+  return useQuery({
+    enabled: !!userId,
+    queryKey: ['my-grievance-summaries', userId],
+    queryFn: async (): Promise<MyGrievanceSummary[]> => {
+      const { data, error } = await supabase.rpc('my_grievance_summaries')
+      if (error) throw error
+      return (data ?? []) as MyGrievanceSummary[]
+    },
+  })
+}
 
 export interface GrievanceMessage {
   id: string

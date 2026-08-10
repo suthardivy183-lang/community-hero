@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MapPin, Plus, Trophy, LayoutDashboard, LogOut, User, Sparkles, Globe, Shield, BarChart3 } from 'lucide-react'
+import { MapPin, Plus, Trophy, LayoutDashboard, LogOut, User, Sparkles, Globe, Shield, BarChart3, MessageCircle } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -75,6 +75,9 @@ export function Header() {
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
 
+          {session ? <Button size="sm" variant="outline" className="hidden xl:inline-flex" onClick={() => navigate('/assistant')}>
+            <MessageCircle className="size-4" /> CommunityHero Assistant
+          </Button> : null}
           <Button size="sm" className="hidden lg:inline-flex" onClick={() => navigate('/grievance')}>
             <Plus className="size-4" /> {t('nav.report')}
           </Button>
@@ -100,6 +103,9 @@ export function Header() {
                   <DropdownMenu.Separator className="my-1 h-px bg-border" />
                   <MenuItem onSelect={() => navigate('/profile')} icon={<User className="size-4" />}>
                     My Profile
+                  </MenuItem>
+                  <MenuItem onSelect={() => navigate('/assistant')} icon={<MessageCircle className="size-4" />}>
+                    CommunityHero Assistant
                   </MenuItem>
                   {isStaff ? (
                     <MenuItem onSelect={() => navigate('/dashboard')} icon={<LayoutDashboard className="size-4" />}>

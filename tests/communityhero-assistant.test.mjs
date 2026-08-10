@@ -15,9 +15,9 @@ test('the persistent CommunityHero Assistant is a separate authenticated route',
 
 test('the assistant queries only the signed-in citizen’s complaints and produces factual status answers', async () => {
   const source = await readFile(page, 'utf8')
-  assert.match(source, /useIssues\(\{ reporterId: session\?\.user\.id \}\)/)
+  assert.match(source, /useMyGrievanceSummaries\(session\?\.user\.id\)/)
   assert.match(source, /What happened to my pothole complaint\?/) 
   assert.match(source, /STATUS_META/)
   assert.match(source, /I can only answer from your saved grievance records/i)
-  assert.match(source, /localStorage/)
+  assert.doesNotMatch(source, /localStorage/)
 })

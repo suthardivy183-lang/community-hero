@@ -9,6 +9,7 @@ import { LandingPage } from '@/pages/LandingPage'
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
 const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
 const GrievanceAssistantPage = lazy(() => import('@/pages/GrievanceAssistantPage').then((m) => ({ default: m.GrievanceAssistantPage })))
+const CommunityHeroAssistantPage = lazy(() => import('@/pages/CommunityHeroAssistantPage').then((m) => ({ default: m.CommunityHeroAssistantPage })))
 const IssueDetailPage = lazy(() => import('@/pages/IssueDetailPage').then((m) => ({ default: m.IssueDetailPage })))
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then((m) => ({ default: m.LeaderboardPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="kiosk" element={<KioskPage />} />
           <Route path="report" element={<RequireAuth><ReportPage /></RequireAuth>} />
           <Route path="grievance" element={<GrievanceAssistantPage />} />
+          <Route path="assistant" element={<RequireAuth><CommunityHeroAssistantPage /></RequireAuth>} />
           <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route
             path="dashboard"
