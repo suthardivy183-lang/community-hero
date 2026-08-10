@@ -12,6 +12,7 @@
     "test:grievance": "node --test tests/grievance-p0.test.mjs",
     "test:grievance-p1": "node --test tests/grievance-p1.test.mjs",
     "test:grievance-p2": "node --test tests/grievance-p2.test.mjs",
+    "test:chatbot": "node --test tests/chatbot-access.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
