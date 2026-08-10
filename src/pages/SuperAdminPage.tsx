@@ -14,7 +14,7 @@ import { ALL_STATUSES, STATUS_META } from '@/lib/issues'
 import { useAuditLog } from '@/features/admin/audit'
 import { timeAgo } from '@/lib/utils'
 
-const ROLES: UserRole[] = ['citizen', 'volunteer', 'authority', 'superadmin']
+const ROLES: UserRole[] = ['citizen', 'volunteer', 'authority', 'supervisor', 'superadmin']
 
 export function SuperAdminPage() {
   const { data: profiles, isLoading } = useAllProfiles()
@@ -89,10 +89,10 @@ export function SuperAdminPage() {
                 {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
               </select>
 
-              {p.role === 'authority' ? (
+              {p.role === 'authority' || p.role === 'supervisor' ? (
                 <select
                   value={p.department_id ?? ''}
-                  onChange={(e) => setRole.mutate({ userId: p.id, role: 'authority', departmentId: e.target.value || null })}
+                  onChange={(e) => setRole.mutate({ userId: p.id, role: p.role, departmentId: e.target.value || null })}
                   className="rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
                 >
                   <option value="">No department</option>

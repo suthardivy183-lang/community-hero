@@ -20,7 +20,7 @@ export function Header() {
   const { session, profile, role, signOut } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const isStaff = role === 'authority' || role === 'volunteer' || role === 'superadmin'
+  const isStaff = role === 'authority' || role === 'supervisor' || role === 'volunteer' || role === 'superadmin'
 
   function pickLanguage(lng: AppLanguage) {
     setLanguage(lng)

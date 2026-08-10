@@ -36,7 +36,7 @@ export default function App() {
           <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route
             path="dashboard"
-            element={<RequireRole roles={['authority', 'volunteer', 'superadmin']}><DashboardPage /></RequireRole>}
+            element={<RequireRole roles={['authority', 'supervisor', 'volunteer', 'superadmin']}><DashboardPage /></RequireRole>}
           />
           <Route
             path="admin"

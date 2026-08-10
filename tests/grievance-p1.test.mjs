@@ -17,6 +17,8 @@ test('P1 protects officer assignment, supervisor escalation, documents, and appe
   assert.match(sql, /assign_issue_officer/i)
   assert.match(sql, /appeal_issue_resolution/i)
   assert.match(sql, /role = 'supervisor'/i)
+  assert.match(sql, /role in \('authority', 'supervisor'\)/i)
+  assert.match(sql, /department staff and superadmins may trigger escalation checks/i)
 })
 
 test('P1 gives departments an accountable queue with officer, urgency, location, age, pending, and overdue controls', async () => {

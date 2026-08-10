@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, ExternalLink, CheckSquare, Square, AlertCircle } from 'lucide-react'
 import type { IssueStatus, IssueView } from '@/lib/issues'
@@ -15,6 +15,7 @@ import { CategoryIcon } from '@/components/issue/CategoryIcon'
 import { ResolveDialog } from './ResolveDialog'
 import { timeAgo } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useAssignOfficer, useDepartmentOfficers, useIssueAssignments, type IssueAssignment } from '@/features/admin/assignments'
 
 export function TriageBoard({ issues }: { issues: IssueView[] }) {
   const { session } = useAuth()
@@ -23,10 +24,27 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
   const [bulkDepartment, setBulkDepartment] = useState('')
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkErrors, setBulkErrors] = useState<string[]>([])
+  const [pendingOnly, setPendingOnly] = useState(false)
+  const [overdueOnly, setOverdueOnly] = useState(false)
+  const [minUrgency, setMinUrgency] = useState('0')
+  const [location, setLocation] = useState('')
+  const [maxAgeDays, setMaxAgeDays] = useState('all')
   const { data: departments } = useDepartments()
   const assignDepartment = useAssignDepartment()
+  const filtered = useMemo(() => issues.filter((issue) => {
+    const ageDays = issue.created_at ? (Date.now() - new Date(issue.created_at).getTime()) / 86_400_000 : 0
+    const open = !['resolved', 'ai_validated', 'closed', 'rejected'].includes(issue.status ?? 'reported')
+    const urgency = issue.severity_score ?? (issue.severity ?? 0) * 10
+    if (pendingOnly && !open) return false
+    if (overdueOnly && (!open || ageDays < 3)) return false
+    if (urgency < Number(minUrgency)) return false
+    if (location.trim() && !(issue.address ?? '').toLowerCase().includes(location.trim().toLowerCase())) return false
+    if (maxAgeDays !== 'all' && ageDays > Number(maxAgeDays)) return false
+    return true
+  }), [issues, location, maxAgeDays, minUrgency, overdueOnly, pendingOnly])
+  const { data: assignments } = useIssueAssignments(filtered.map((issue) => issue.id as string))
   // Sort by AI priority score (severity + community + context + age + emergency).
-  const ordered = [...issues].sort((a, b) => computePriority(b).score - computePriority(a).score)
+  const ordered = [...filtered].sort((a, b) => computePriority(b).score - computePriority(a).score)
   function updateDemoStatus(issueId: string, status: IssueStatus) {
     setDemoStatuses((statuses) => ({ ...statuses, [issueId]: status }))
   }
@@ -64,6 +82,19 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
   return (
     <div className="space-y-2.5">
       {!session ? <p className="rounded-lg bg-primary-tint px-3 py-2 text-xs font-medium text-primary">Public demo mode — triage changes update this dashboard locally.</p> : null}
+      <div className="grid gap-2 rounded-xl border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="text-xs font-semibold text-muted">Urgency
+          <select value={minUrgency} onChange={(e) => setMinUrgency(e.target.value)} className="mt-1 w-full rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm"><option value="0">Any urgency</option><option value="40">Medium +</option><option value="70">High +</option><option value="90">Critical</option></select>
+        </label>
+        <label className="text-xs font-semibold text-muted">Location
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Address or area" className="mt-1 w-full rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm" />
+        </label>
+        <label className="text-xs font-semibold text-muted">Age
+          <select value={maxAgeDays} onChange={(e) => setMaxAgeDays(e.target.value)} className="mt-1 w-full rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm"><option value="all">Any age</option><option value="1">Last day</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select>
+        </label>
+        <label className="flex items-center gap-2 pt-5 text-sm font-medium"><input type="checkbox" checked={pendingOnly} onChange={(e) => setPendingOnly(e.target.checked)} /> Pending</label>
+        <label className="flex items-center gap-2 pt-5 text-sm font-medium"><input type="checkbox" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} /> Overdue (3+ days)</label>
+      </div>
       {selected.size > 0 ? <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-surface/95 p-3 shadow-lg backdrop-blur">
         <span className="mr-1 text-sm font-semibold">{selected.size} selected</span>
         <Button size="sm" variant="outline" onClick={() => bulkStatus('acknowledged')} loading={bulkBusy}>Move to Acknowledged</Button>
@@ -77,17 +108,19 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
       </div> : null}
       {bulkErrors.length > 0 ? <div className="flex items-start gap-2 rounded-lg bg-status-rejected/10 px-3 py-2 text-xs text-status-rejected"><AlertCircle className="mt-0.5 size-4 shrink-0" /><div>{bulkErrors.map((error) => <p key={error}>{error}</p>)}</div></div> : null}
       {ordered.map((issue) => (
-        <TriageRow key={issue.id} issue={issue} selected={selected.has(issue.id as string)} onToggle={() => toggleSelected(issue.id as string)} demoStatus={demoStatuses[issue.id as string]} onDemoStatusChange={updateDemoStatus} />
+        <TriageRow key={issue.id} issue={issue} assignment={assignments?.find((item) => item.issue_id === issue.id)} selected={selected.has(issue.id as string)} onToggle={() => toggleSelected(issue.id as string)} demoStatus={demoStatuses[issue.id as string]} onDemoStatusChange={updateDemoStatus} />
       ))}
       {ordered.length === 0 ? <p className="py-10 text-center text-sm text-muted">No issues in the queue.</p> : null}
     </div>
   )
 }
 
-function TriageRow({ issue, selected, onToggle, demoStatus, onDemoStatusChange }: { issue: IssueView; selected: boolean; onToggle: () => void; demoStatus?: IssueStatus; onDemoStatusChange: (issueId: string, status: IssueStatus) => void }) {
-  const { session } = useAuth()
+function TriageRow({ issue, assignment, selected, onToggle, demoStatus, onDemoStatusChange }: { issue: IssueView; assignment?: IssueAssignment; selected: boolean; onToggle: () => void; demoStatus?: IssueStatus; onDemoStatusChange: (issueId: string, status: IssueStatus) => void }) {
+  const { session, role } = useAuth()
   const change = useChangeStatus(issue.id as string)
   const [resolveOpen, setResolveOpen] = useState(false)
+  const { data: officers } = useDepartmentOfficers(issue.department_id)
+  const assignOfficer = useAssignOfficer()
   const status = demoStatus ?? issue.status ?? 'reported'
   const nextOptions = NEXT_STATUSES[status] ?? []
   const canResolve = status === 'in_progress'
@@ -108,6 +141,7 @@ function TriageRow({ issue, selected, onToggle, demoStatus, onDemoStatusChange }
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <span>{issue.category_name}</span>
           <span>· {issue.department_name ?? 'Unassigned'}</span>
+          <span>· {assignment?.officer?.full_name ? `Officer: ${assignment.officer.full_name}` : 'Unassigned officer'}</span>
           <span>· {issue.created_at ? timeAgo(issue.created_at) : ''}</span>
           <SeverityMeter severity={issue.severity ?? 5} showLabel={false} />
         </div>
@@ -115,6 +149,10 @@ function TriageRow({ issue, selected, onToggle, demoStatus, onDemoStatusChange }
 
       <PriorityBadge issue={issue} />
       <StatusBadge status={status} />
+
+      {(role === 'supervisor' || role === 'superadmin') && issue.department_id ? <select value={assignment?.officer_id ?? ''} onChange={(e) => { if (e.target.value) assignOfficer.mutate({ issueId: issue.id as string, officerId: e.target.value }) }} className="rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-xs font-medium" aria-label="Assign officer">
+        <option value="">Assign officer…</option>{officers?.map((officer) => <option key={officer.id} value={officer.id}>{officer.full_name ?? 'Unnamed officer'}</option>)}
+      </select> : null}
 
       <div className="flex items-center gap-2">
         {canResolve ? (

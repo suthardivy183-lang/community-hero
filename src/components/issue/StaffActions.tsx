@@ -14,8 +14,8 @@ export function StaffActions({ issue }: { issue: IssueView }) {
   const change = useChangeStatus(issue.id as string)
   const [resolveOpen, setResolveOpen] = useState(false)
   const status = issue.status ?? 'reported'
-  const canVerify = role === 'authority' || role === 'volunteer' || role === 'superadmin'
-  const canManage = role === 'authority' || role === 'superadmin'
+  const canVerify = role === 'authority' || role === 'supervisor' || role === 'volunteer' || role === 'superadmin'
+  const canManage = role === 'authority' || role === 'supervisor' || role === 'superadmin'
   if (!canVerify) return null
 
   const canVerifyIssue = status === 'reported'
