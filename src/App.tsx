@@ -36,7 +36,7 @@ export default function App() {
           <Route path="transparency" element={<TransparencyPage />} />
           <Route path="kiosk" element={<KioskPage />} />
           <Route path="report" element={<RequireAuth><ReportPage /></RequireAuth>} />
-          <Route path="grievance" element={<RequireAuth><GrievanceAssistantPage /></RequireAuth>} />
+          <Route path="grievance" element={<GrievanceAssistantPage />} />
           <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route
             path="dashboard"

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bot, CheckCircle2, ChevronRight, LocateFixed, Mic, Send, Sparkles, Square } from 'lucide-react'
+import { Bot, CheckCircle2, ChevronRight, LocateFixed, Mic, Send, Sparkles, Square, Volume2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCategories, useDepartments } from '@/features/issues/queries'
 import { useCreatePublicGrievance } from '@/features/grievances/mutations'
@@ -15,22 +15,30 @@ import { ChannelAccess } from '@/components/grievance/ChannelAccess'
 import { FieldError, Input, Label, Textarea } from '@/components/ui/Field'
 import type { AppLanguage } from '@/lib/issues'
 
-const languages: Array<{ value: AppLanguage; label: string }> = [
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'हिन्दी' },
-  { value: 'gu', label: 'ગુજરાતી' },
+type VoiceLanguage = AppLanguage | 'mr' | 'bn' | 'ta' | 'te' | 'kn' | 'ml'
+
+const languages: Array<{ value: VoiceLanguage; label: string; speechLocale: string }> = [
+  { value: 'en', label: 'English', speechLocale: 'en-IN' },
+  { value: 'hi', label: 'हिन्दी', speechLocale: 'hi-IN' },
+  { value: 'gu', label: 'ગુજરાતી', speechLocale: 'gu-IN' },
+  { value: 'mr', label: 'मराठी', speechLocale: 'mr-IN' },
+  { value: 'bn', label: 'বাংলা', speechLocale: 'bn-IN' },
+  { value: 'ta', label: 'தமிழ்', speechLocale: 'ta-IN' },
+  { value: 'te', label: 'తెలుగు', speechLocale: 'te-IN' },
+  { value: 'kn', label: 'ಕನ್ನಡ', speechLocale: 'kn-IN' },
+  { value: 'ml', label: 'മലയാളം', speechLocale: 'ml-IN' },
 ]
 
 export function GrievanceAssistantPage() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, session } = useAuth()
   const { data: categories = [] } = useCategories()
   const { data: departments = [] } = useDepartments()
   const { coords: browserCoords, locate } = useGeolocation()
   const speech = useSpeechRecognition()
   const create = useCreatePublicGrievance()
 
-  const [language, setLanguage] = useState<AppLanguage>(profile?.language ?? 'en')
+  const [language, setLanguage] = useState<VoiceLanguage>(profile?.language ?? 'en')
   const [message, setMessage] = useState('')
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -39,6 +47,7 @@ export function GrievanceAssistantPage() {
   const [coords, setCoords] = useState<Coords>(DEFAULT_CENTER)
   const [address, setAddress] = useState<string | null>(null)
   const [analysing, setAnalysing] = useState(false)
+  const [assistantReply, setAssistantReply] = useState('Describe the problem in your own words. AI will suggest the service area, responsible department and urgency for you to review.')
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<{ issueId: string; complaintNumber: string } | null>(null)
 
@@ -71,6 +80,7 @@ export function GrievanceAssistantPage() {
     setTitle(result.title)
     setMessage(result.description || message)
     setSeverity(result.severity)
+    setAssistantReply(`I prepared the title, service area, department and urgency from your message. Please review and edit anything that is not accurate before lodging it.`)
   }
 
   async function understandGrievance() {
@@ -80,7 +90,7 @@ export function GrievanceAssistantPage() {
     try {
       applyAnalysis(await extractFromText({ text: message, hintCategorySlugs: categories.map((item) => item.slug) }))
     } catch {
-      setError('The AI assistant is unavailable right now. You can still choose the department and lodge your grievance manually.')
+      setError('AI analysis is unavailable right now. You can still choose the department and lodge your grievance manually.')
     } finally {
       setAnalysing(false)
     }
@@ -88,6 +98,7 @@ export function GrievanceAssistantPage() {
 
   async function lodgeGrievance() {
     setError(null)
+    if (!session) return setError('Please sign in to lodge and track your grievance.')
     if (!title.trim()) return setError('Add a short grievance title so the department can identify it quickly.')
     if (message.trim().length < 10) return setError('Please describe the grievance in a little more detail.')
     if (!categoryId) return setError('Choose the service area that best fits your grievance.')
@@ -108,6 +119,15 @@ export function GrievanceAssistantPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'We could not lodge the grievance. Please try again.')
     }
+  }
+
+  function speakReply() {
+    if (!assistantReply || !('speechSynthesis' in window)) return
+    const selectedLanguage = languages.find((item) => item.value === language)
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(assistantReply)
+    utterance.lang = selectedLanguage?.speechLocale ?? 'en-IN'
+    window.speechSynthesis.speak(utterance)
   }
 
   if (created) {
@@ -137,9 +157,9 @@ export function GrievanceAssistantPage() {
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Citizen grievance assistant</p>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Tell us what happened. We’ll find the department.</h1>
-          <p className="mt-2 text-sm text-muted">Use your own words in English, हिन्दी or ગુજરાતી. A photo is optional for this route.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Report a grievance</p>
+          <h1 className="mt-1 font-display text-3xl font-semibold">Describe it. We’ll find the department.</h1>
+          <p className="mt-2 text-sm text-muted">Type or speak in English, हिन्दी, ગુજરાતી, मराठी, বাংলা, தமிழ் and more. A photo is optional for this route.</p>
         </div>
         <Bot className="mt-1 size-9 shrink-0 text-primary" />
       </div>
@@ -148,7 +168,7 @@ export function GrievanceAssistantPage() {
         <CardBody>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Label className="mb-0" htmlFor="grievance-language">Language</Label>
-            <select id="grievance-language" value={language} onChange={(event) => setLanguage(event.target.value as AppLanguage)} className="rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm">
+            <select id="grievance-language" value={language} onChange={(event) => setLanguage(event.target.value as VoiceLanguage)} className="rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm">
               {languages.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </div>
@@ -164,6 +184,13 @@ export function GrievanceAssistantPage() {
           </div>
           {speech.listening ? <p className="mt-2 text-xs font-semibold text-primary">● Listening in {languages.find((item) => item.value === language)?.label}…</p> : null}
           {speech.error ? <p className="mt-2 text-xs text-status-rejected">Voice input: {speech.error}</p> : null}
+          <div className="mt-4 rounded-xl border border-primary/20 bg-surface p-3" aria-live="polite">
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Bot className="size-4" /> AI analysis</p>
+              <Button type="button" variant="ghost" size="sm" onClick={speakReply}><Volume2 className="size-4" /> Read aloud</Button>
+            </div>
+            <p className="mt-2 text-sm text-ink-soft">{assistantReply}</p>
+          </div>
         </CardBody>
       </Card>
       <ChannelAccess />
@@ -189,7 +216,11 @@ export function GrievanceAssistantPage() {
       </Card>
 
       {error ? <FieldError>{error}</FieldError> : null}
-      <Button className="mt-5 w-full" size="lg" loading={create.isPending} onClick={lodgeGrievance}><Send className="size-4" /> Review and lodge grievance</Button>
+      {session ? (
+        <Button className="mt-5 w-full" size="lg" loading={create.isPending} onClick={lodgeGrievance}><Send className="size-4" /> Review and lodge grievance</Button>
+      ) : (
+        <Button className="mt-5 w-full" size="lg" onClick={() => navigate('/auth')}>Sign in to lodge and track grievance <ChevronRight className="size-4" /></Button>
+      )}
       <p className="mt-3 text-center text-xs text-muted">Already uploaded photo or video evidence? <Link to="/report" className="font-semibold text-primary hover:underline">Use the visual issue report</Link>.</p>
     </div>
   )
