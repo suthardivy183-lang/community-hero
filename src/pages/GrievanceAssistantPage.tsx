@@ -49,7 +49,7 @@ export function GrievanceAssistantPage() {
   const [analysing, setAnalysing] = useState(false)
   const [assistantReply, setAssistantReply] = useState('Describe the problem in your own words. AI will suggest the service area, responsible department and urgency for you to review.')
   const [error, setError] = useState<string | null>(null)
-  const [created, setCreated] = useState<{ issueId: string; complaintNumber: string } | null>(null)
+  const [created, setCreated] = useState<{ issueId: string; complaintNumber: string; referenceLabel: string } | null>(null)
 
   const selectedCategory = useMemo(() => categories.find((item) => item.id === categoryId), [categories, categoryId])
 
@@ -115,7 +115,7 @@ export function GrievanceAssistantPage() {
         language,
         aiMeta: { aiGenerated: analysing === false, intake: 'chat' },
       })
-      setCreated({ issueId: result.issue_id, complaintNumber: result.complaint_number })
+      setCreated({ issueId: result.issue_id, complaintNumber: result.complaint_number, referenceLabel: result.referenceLabel })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'We could not lodge the grievance. Please try again.')
     }
@@ -140,7 +140,7 @@ export function GrievanceAssistantPage() {
             <h1 className="mt-1 font-display text-3xl font-semibold">We have sent it to the right place.</h1>
             <p className="mt-4 text-sm text-muted">Keep this reference for tracking and conversations with the department.</p>
             <div className="mx-auto mt-5 max-w-sm rounded-2xl border border-primary/25 bg-surface px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Complaint number</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{created.referenceLabel}</p>
               <p className="mt-1 font-mono text-2xl font-bold text-primary">{created.complaintNumber}</p>
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
