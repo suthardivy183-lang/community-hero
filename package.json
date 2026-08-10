@@ -15,6 +15,7 @@
     "test:chatbot": "node --test tests/chatbot-access.test.mjs",
     "test:grievance-lodging": "node --test tests/grievance-lodging-fallback.test.mjs",
     "test:assistant": "node --test tests/communityhero-assistant.test.mjs",
+    "test:broader-grievance": "node --test tests/broader-grievance-intake.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1458,6 +1458,10 @@ export type Database = {
           vote_count: number
         }[]
       }
+      link_issue_to_infrastructure_incident: {
+        Args: { p_issue_id: string; p_similar_issue_id: string }
+        Returns: string
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown

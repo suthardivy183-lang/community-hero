@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight, Pencil, Video, ImagePlus, ShieldCheck } from 'lucide-react'
+import { Camera, Sparkles, MapPin, Loader2, Users, Pencil, Video, ImagePlus, ShieldCheck, Link2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCategories } from '@/features/issues/queries'
 import { useSimilarIssues } from '@/features/issues/nearby'
@@ -48,7 +48,7 @@ export function ReportPage() {
   const [context, setContext] = useState<IssueContext>({})
   const [error, setError] = useState<string | null>(null)
   const [demoSubmitted, setDemoSubmitted] = useState(false)
-  const [demoJoinedIssueId, setDemoJoinedIssueId] = useState<string | null>(null)
+  const [incidentAnchorId, setIncidentAnchorId] = useState<string | null>(null)
   const [isConfidential, setIsConfidential] = useState(false)
   const [consentToShare, setConsentToShare] = useState(false)
   const photoCameraRef = useRef<HTMLInputElement>(null)
@@ -125,15 +125,6 @@ export function ReportPage() {
     embedText(`${result.title}. ${result.description}`).then(setEmbedding)
   }
 
-  async function confirmExisting(issueId: string) {
-    if (!session) {
-      setDemoJoinedIssueId(issueId)
-      return
-    }
-    await supabase.from('confirmations').insert({ issue_id: issueId, user_id: session.user.id })
-    navigate(`/issue/${issueId}`)
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -182,7 +173,20 @@ export function ReportPage() {
         isConfidential,
         consentToShare,
       })
-      navigate(`/issue/${id}`)
+      let incidentGroupingUnavailable = false
+      if (incidentAnchorId) {
+        // This links two independently trackable reports to one underlying
+        // infrastructure incident. It never merges away the citizen's record.
+        const { error: incidentError } = await supabase.rpc('link_issue_to_infrastructure_incident', {
+          p_issue_id: id,
+          p_similar_issue_id: incidentAnchorId,
+        })
+        if (incidentError) {
+          console.warn('Incident grouping is unavailable:', incidentError.message)
+          incidentGroupingUnavailable = true
+        }
+      }
+      navigate(`/issue/${id}${incidentGroupingUnavailable ? '?incidentGrouping=unavailable' : ''}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not submit report.')
     }
@@ -293,29 +297,29 @@ export function ReportPage() {
                 <Users className="size-4" /> Similar issue already reported nearby
               </div>
               <p className="mb-3 text-sm text-ink-soft">
-                Join an existing report instead of creating a duplicate — it boosts its supporter count & priority.
+                Keep your own complaint number, while linking it to the same underlying infrastructure incident.
               </p>
               <div className="space-y-2">
                 {similar.slice(0, 3).map((n) => (
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => confirmExisting(n.id)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-left transition-colors hover:border-accent"
+                    onClick={() => setIncidentAnchorId((current) => current === n.id ? null : n.id)}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg border bg-surface px-3 py-2 text-left transition-colors ${incidentAnchorId === n.id ? 'border-accent ring-2 ring-accent/20' : 'border-border hover:border-accent'}`}
                   >
                     <div className="min-w-0">
                       <p className="line-clamp-1 text-sm font-medium">{n.title}</p>
                       <p className="text-xs text-muted">
-                        {Math.round(n.similarity)}% similar · {formatDistance(n.distance_m)} · {(n.confirm_count ?? 0) + (demoJoinedIssueId === n.id ? 1 : 0)} supporters
+                        {Math.round(n.similarity)}% similar · {formatDistance(n.distance_m)} · {n.confirm_count ?? 0} supporters
                       </p>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent-fg">
-                      {demoJoinedIssueId === n.id ? 'Joined' : 'Join'} <ArrowRight className="size-3.5" />
+                      <Link2 className="size-3.5" /> {incidentAnchorId === n.id ? 'Will group on submit' : 'Group after submit'}
                     </span>
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted">Not the same? Just submit below to create a new report.</p>
+              <p className="mt-2 text-xs text-muted">{incidentAnchorId ? 'Your submission will receive its own complaint number and be grouped with the selected incident.' : 'Not the same? Submit below to create a separate incident.'}</p>
             </CardBody>
           </Card>
         ) : null}

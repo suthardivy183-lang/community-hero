@@ -17,6 +17,10 @@ export const analysisSchema = z.object({
   departmentSlug: z.string().optional(),
   departmentName: z.string().optional(),
   tags: z.array(z.string()).default([]),
+  detectedLanguages: z.array(z.string()).default([]),
+  replyLanguage: z.string().optional(),
+  assistantReply: z.string().optional(),
+  clarificationQuestions: z.array(z.string()).default([]),
 })
 export type IssueAnalysis = z.infer<typeof analysisSchema>
 
@@ -58,6 +62,8 @@ export function analyzeReport(input: {
 export function extractFromText(input: {
   text: string
   hintCategorySlugs: string[]
+  replyLanguage?: string
+  detectedLanguages?: string[]
 }): Promise<IssueAnalysis> {
   return invoke('ai-extract-text', input, analysisSchema)
 }

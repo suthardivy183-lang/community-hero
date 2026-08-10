@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown, Share2, FileText, Paperclip } from 'lucide-react'
 import {
   useIssue, useIssueMedia, useComments, useStatusHistory, useValidation, useFixFeedback, useCategories,
@@ -29,6 +29,7 @@ import { timeAgo } from '@/lib/utils'
 
 export function IssueDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const { session, role } = useAuth()
   const { data: issue, isLoading } = useIssue(id)
   const { data: media } = useIssueMedia(id)
@@ -91,6 +92,7 @@ export function IssueDetailPage() {
       <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink">
         <ArrowLeft className="size-4" /> Back to map
       </Link>
+      {searchParams.get('incidentGrouping') === 'unavailable' ? <div className="mb-4 rounded-xl border border-status-progress/30 bg-status-progress/10 px-3 py-2 text-sm text-ink-soft">Your complaint was saved with its own reference. Incident grouping could not be completed yet; it has not been merged into or removed from another record.</div> : null}
 
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-5">

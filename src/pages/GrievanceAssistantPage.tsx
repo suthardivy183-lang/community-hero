@@ -8,6 +8,7 @@ import { extractFromText, type IssueAnalysis } from '@/lib/ai'
 import { useGeolocation, DEFAULT_CENTER, type Coords } from '@/hooks/useGeolocation'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { reverseGeocode } from '@/lib/geocode'
+import { detectLanguage } from '@/lib/language'
 import { LocationPicker } from '@/components/map/LocationPicker'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -16,6 +17,7 @@ import { FieldError, Input, Label, Textarea } from '@/components/ui/Field'
 import type { AppLanguage } from '@/lib/issues'
 
 type VoiceLanguage = AppLanguage | 'mr' | 'bn' | 'ta' | 'te' | 'kn' | 'ml'
+type IntakeLanguage = VoiceLanguage | 'auto'
 
 const languages: Array<{ value: VoiceLanguage; label: string; speechLocale: string }> = [
   { value: 'en', label: 'English', speechLocale: 'en-IN' },
@@ -29,16 +31,18 @@ const languages: Array<{ value: VoiceLanguage; label: string; speechLocale: stri
   { value: 'ml', label: 'മലയാളം', speechLocale: 'ml-IN' },
 ]
 
+const minimumAutoFillConfidence = 0.72
+
 export function GrievanceAssistantPage() {
   const navigate = useNavigate()
-  const { profile, session } = useAuth()
+  const { session } = useAuth()
   const { data: categories = [] } = useCategories()
   const { data: departments = [] } = useDepartments()
   const { coords: browserCoords, locate } = useGeolocation()
   const speech = useSpeechRecognition()
   const create = useCreatePublicGrievance()
 
-  const [language, setLanguage] = useState<VoiceLanguage>(profile?.language ?? 'en')
+  const [language, setLanguage] = useState<IntakeLanguage>('auto')
   const [message, setMessage] = useState('')
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -48,10 +52,14 @@ export function GrievanceAssistantPage() {
   const [address, setAddress] = useState<string | null>(null)
   const [analysing, setAnalysing] = useState(false)
   const [assistantReply, setAssistantReply] = useState('Describe the problem in your own words. AI will suggest the service area, responsible department and urgency for you to review.')
+  const [clarificationQuestions, setClarificationQuestions] = useState<string[]>([])
+  const [analysisConfidence, setAnalysisConfidence] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<{ issueId: string; complaintNumber: string; referenceLabel: string } | null>(null)
 
   const selectedCategory = useMemo(() => categories.find((item) => item.id === categoryId), [categories, categoryId])
+  const detectedLanguage = useMemo(() => detectLanguage(message), [message])
+  const activeLanguage = language === 'auto' ? detectedLanguage.replyLanguage : language
 
   useEffect(() => { locate() }, [locate])
   useEffect(() => { if (browserCoords) setCoords(browserCoords) }, [browserCoords])
@@ -70,6 +78,13 @@ export function GrievanceAssistantPage() {
   }, [selectedCategory?.default_department_id])
 
   function applyAnalysis(result: IssueAnalysis) {
+    const confidence = result.confidence ?? 0
+    setAnalysisConfidence(confidence)
+    setClarificationQuestions(result.clarificationQuestions ?? [])
+    setAssistantReply(result.assistantReply || (confidence < minimumAutoFillConfidence
+      ? 'I am not confident enough to fill the form for you. Please answer the questions below or fill the details yourself.'
+      : 'I prepared suggestions from your description. Please review each field before lodging.'))
+    if (confidence < minimumAutoFillConfidence) return
     const matchingCategory = categories.find((item) => item.slug === result.categorySlug)
     if (matchingCategory) {
       setCategoryId(matchingCategory.id)
@@ -80,7 +95,6 @@ export function GrievanceAssistantPage() {
     setTitle(result.title)
     setMessage(result.description || message)
     setSeverity(result.severity)
-    setAssistantReply(`I prepared the title, service area, department and urgency from your message. Please review and edit anything that is not accurate before lodging it.`)
   }
 
   async function understandGrievance() {
@@ -88,7 +102,12 @@ export function GrievanceAssistantPage() {
     setError(null)
     setAnalysing(true)
     try {
-      applyAnalysis(await extractFromText({ text: message, hintCategorySlugs: categories.map((item) => item.slug) }))
+      applyAnalysis(await extractFromText({
+        text: message,
+        hintCategorySlugs: categories.map((item) => item.slug),
+        replyLanguage: activeLanguage,
+        detectedLanguages: detectedLanguage.languages,
+      }))
     } catch {
       setError('AI analysis is unavailable right now. You can still choose the department and lodge your grievance manually.')
     } finally {
@@ -112,7 +131,7 @@ export function GrievanceAssistantPage() {
         lat: coords.lat,
         lng: coords.lng,
         address,
-        language,
+        language: activeLanguage,
         aiMeta: { aiGenerated: analysing === false, intake: 'chat' },
       })
       setCreated({ issueId: result.issue_id, complaintNumber: result.complaint_number, referenceLabel: result.referenceLabel })
@@ -123,7 +142,7 @@ export function GrievanceAssistantPage() {
 
   function speakReply() {
     if (!assistantReply || !('speechSynthesis' in window)) return
-    const selectedLanguage = languages.find((item) => item.value === language)
+    const selectedLanguage = languages.find((item) => item.value === activeLanguage)
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(assistantReply)
     utterance.lang = selectedLanguage?.speechLocale ?? 'en-IN'
@@ -168,7 +187,8 @@ export function GrievanceAssistantPage() {
         <CardBody>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Label className="mb-0" htmlFor="grievance-language">Language</Label>
-            <select id="grievance-language" value={language} onChange={(event) => setLanguage(event.target.value as VoiceLanguage)} className="rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm">
+            <select id="grievance-language" value={language} onChange={(event) => setLanguage(event.target.value as IntakeLanguage)} className="rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm">
+              <option value="auto">Auto-detect from my message</option>
               {languages.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </div>
@@ -178,18 +198,21 @@ export function GrievanceAssistantPage() {
             {speech.supported ? (
               speech.listening
                 ? <Button type="button" variant="danger" size="sm" onClick={speech.stop}><Square className="size-4" /> Stop voice input</Button>
-                : <Button type="button" variant="outline" size="sm" onClick={() => speech.start(language)}><Mic className="size-4" /> Voice input</Button>
+                : <Button type="button" variant="outline" size="sm" onClick={() => speech.start(activeLanguage)}><Mic className="size-4" /> Voice input</Button>
             ) : <span className="self-center text-xs text-muted">Voice input works in Chrome and supported mobile browsers.</span>}
             <Button type="button" size="sm" loading={analysing} disabled={!message.trim()} onClick={understandGrievance}><Sparkles className="size-4" /> Understand with AI</Button>
           </div>
-          {speech.listening ? <p className="mt-2 text-xs font-semibold text-primary">● Listening in {languages.find((item) => item.value === language)?.label}…</p> : null}
+          {speech.listening ? <p className="mt-2 text-xs font-semibold text-primary">● Listening in {languages.find((item) => item.value === activeLanguage)?.label}…</p> : null}
           {speech.error ? <p className="mt-2 text-xs text-status-rejected">Voice input: {speech.error}</p> : null}
+          {message.trim() ? <p className="mt-2 text-xs text-muted">{detectedLanguage.isMixed ? `Mixed language detected: ${detectedLanguage.languages.join(' + ')}. AI will reply in ${activeLanguage}.` : `Detected language: ${activeLanguage}.`}</p> : null}
           <div className="mt-4 rounded-xl border border-primary/20 bg-surface p-3" aria-live="polite">
             <div className="flex items-center justify-between gap-3">
               <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Bot className="size-4" /> AI analysis</p>
               <Button type="button" variant="ghost" size="sm" onClick={speakReply}><Volume2 className="size-4" /> Read aloud</Button>
             </div>
             <p className="mt-2 text-sm text-ink-soft">{assistantReply}</p>
+            {analysisConfidence != null ? <p className={`mt-2 text-xs font-semibold ${analysisConfidence >= minimumAutoFillConfidence ? 'text-status-validated' : 'text-status-progress'}`}>AI confidence: {Math.round(analysisConfidence * 100)}% {analysisConfidence >= minimumAutoFillConfidence ? '— suggestions filled for your review.' : '— details were left for you to confirm.'}</p> : null}
+            {clarificationQuestions.length ? <div className="mt-3 rounded-lg bg-primary-tint/35 p-3"><p className="text-xs font-semibold uppercase tracking-wide text-primary">Please clarify</p><ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">{clarificationQuestions.map((question) => <li key={question}>{question}</li>)}</ul></div> : null}
           </div>
         </CardBody>
       </Card>
