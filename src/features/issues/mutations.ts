@@ -4,6 +4,7 @@ import type { Database } from '@/lib/database.types'
 import type { IssueStatus } from '@/lib/issues'
 
 type MediaKind = Database['public']['Enums']['media_kind']
+type MediaType = Database['public']['Enums']['media_type']
 
 /** Upload a processed photo blob to the issue-media bucket; returns the storage path. */
 export async function uploadIssuePhoto(
@@ -220,5 +221,21 @@ export function useAssignDepartment() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['issues'] }),
+  })
+}
+
+export function useUploadSupportingAttachment(issueId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ file, userId }: { file: File; userId: string }) => {
+      if (file.size > 15 * 1024 * 1024) throw new Error('Supporting files must be 15 MB or smaller.')
+      const type: MediaType = file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('image/') ? 'photo' : 'document'
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `${userId}/${issueId}/support-${Date.now()}-${safeName}`
+      await uploadBlob(file, path, file.type || 'application/octet-stream')
+      const { error } = await supabase.from('issue_media').insert({ issue_id: issueId, uploader_id: userId, kind: 'original', type, storage_path: path })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['issue-media', issueId] }),
   })
 }

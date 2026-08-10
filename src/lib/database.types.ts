@@ -403,6 +403,18 @@ export type Database = {
           },
         ]
       }
+      issue_assignments: {
+        Row: { issue_id: string; officer_id: string; assigned_by: string; assigned_at: string }
+        Insert: { issue_id: string; officer_id: string; assigned_by: string; assigned_at?: string }
+        Update: { issue_id?: string; officer_id?: string; assigned_by?: string; assigned_at?: string }
+        Relationships: []
+      }
+      issue_appeals: {
+        Row: { id: string; issue_id: string; appellant_id: string; reason: string; created_at: string; reviewed_at: string | null; reviewed_by: string | null; outcome: string }
+        Insert: { id?: string; issue_id: string; appellant_id: string; reason: string; created_at?: string; reviewed_at?: string | null; reviewed_by?: string | null; outcome?: string }
+        Update: { id?: string; issue_id?: string; appellant_id?: string; reason?: string; created_at?: string; reviewed_at?: string | null; reviewed_by?: string | null; outcome?: string }
+        Relationships: []
+      }
       issues: {
         Row: {
           acknowledged_at: string | null
@@ -1073,6 +1085,14 @@ export type Database = {
       }
       award_points: {
         Args: { amount: number; target: string }
+        Returns: undefined
+      }
+      appeal_issue_resolution: {
+        Args: { p_issue_id: string; p_reason: string }
+        Returns: string
+      }
+      assign_issue_officer: {
+        Args: { p_issue_id: string; p_officer_id: string }
         Returns: undefined
       }
       create_issue: {
@@ -2006,8 +2026,8 @@ export type Database = {
         | "pending_information"
         | "reopened"
       media_kind: "original" | "resolution"
-      media_type: "photo" | "video"
-      user_role: "citizen" | "authority" | "volunteer" | "superadmin"
+      media_type: "photo" | "video" | "audio" | "document"
+      user_role: "citizen" | "authority" | "supervisor" | "volunteer" | "superadmin"
       validation_verdict: "genuine" | "insufficient" | "unrelated" | "pending"
     }
     CompositeTypes: {
@@ -2158,8 +2178,8 @@ export const Constants = {
         "reopened",
       ],
       media_kind: ["original", "resolution"],
-      media_type: ["photo", "video"],
-      user_role: ["citizen", "authority", "volunteer", "superadmin"],
+      media_type: ["photo", "video", "audio", "document"],
+      user_role: ["citizen", "authority", "supervisor", "volunteer", "superadmin"],
       validation_verdict: ["genuine", "insufficient", "unrelated", "pending"],
     },
   },

@@ -22,11 +22,11 @@ export function DashboardPage() {
   useRealtimeIssues()
   const { profile, role } = useAuth()
   // Authorities see their department's queue; volunteers/superadmins see all.
-  const departmentId = role === 'authority' ? profile?.department_id ?? null : null
+  const departmentId = role === 'authority' || role === 'supervisor' ? profile?.department_id ?? null : null
   const { data: issues, isLoading } = useIssues(departmentId ? { departmentId } : {})
 
   const [tab, setTab] = useState(role === 'volunteer' ? 'verify' : 'triage')
-  const canOperate = role === 'authority' || role === 'superadmin'
+  const canOperate = role === 'authority' || role === 'supervisor' || role === 'superadmin'
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">

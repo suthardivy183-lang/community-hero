@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown, Share2 } from 'lucide-react'
+import { MapPin, ArrowLeft, Send, ShieldCheck, Sparkles, ThumbsUp, ThumbsDown, Share2, FileText, Paperclip } from 'lucide-react'
 import {
   useIssue, useIssueMedia, useComments, useStatusHistory, useValidation, useFixFeedback, useCategories,
 } from '@/features/issues/queries'
 import { useMyInteractions } from '@/features/issues/userState'
-import { useToggleVote, useToggleConfirm, useAddComment, useSubmitFixFeedback, useChangeStatus } from '@/features/issues/mutations'
+import { useToggleVote, useToggleConfirm, useAddComment, useSubmitFixFeedback, useChangeStatus, useUploadSupportingAttachment } from '@/features/issues/mutations'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useComplaintReference, useGrievanceMessages } from '@/features/grievances/queries'
 import { useSendGrievanceMessage } from '@/features/grievances/mutations'
+import { useAppealIssueResolution } from '@/features/admin/assignments'
 import { mediaUrl, supabase } from '@/lib/supabase'
 import { STATUS_META } from '@/lib/issues'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -46,9 +47,13 @@ export function IssueDetailPage() {
   const addComment = useAddComment(id ?? '')
   const submitFixFeedback = useSubmitFixFeedback(id ?? '')
   const withdraw = useChangeStatus(id ?? '')
+  const appeal = useAppealIssueResolution(id ?? '')
+  const uploadSupportingAttachment = useUploadSupportingAttachment(id ?? '')
   const sendGrievanceMessage = useSendGrievanceMessage(id ?? '')
   const [comment, setComment] = useState('')
   const [grievanceMessage, setGrievanceMessage] = useState('')
+  const [appealReason, setAppealReason] = useState('')
+  const [appealing, setAppealing] = useState(false)
   const storedDemo = readDemoInteraction(id)
   const [demoVoted, setDemoVoted] = useState(storedDemo.voted)
   const [demoConfirmed, setDemoConfirmed] = useState(storedDemo.confirmed)
@@ -72,11 +77,13 @@ export function IssueDetailPage() {
   const voted = session ? (interactions?.votes.has(issue.id as string) ?? false) : demoVoted
   const confirmed = session ? (interactions?.confirmations.has(issue.id as string) ?? false) : demoConfirmed
   const originalMedia = media?.filter((item) => item.kind === 'original') ?? []
-  const activeMedia = originalMedia.find((item) => item.id === selectedMediaId) ?? originalMedia[0]
-  const activePoster = originalMedia.find((item) => item.type === 'photo')
+  const visualMedia = originalMedia.filter((item) => item.type === 'photo' || item.type === 'video')
+  const supportingMedia = originalMedia.filter((item) => item.type === 'audio' || item.type === 'document')
+  const activeMedia = visualMedia.find((item) => item.id === selectedMediaId) ?? visualMedia[0]
+  const activePoster = visualMedia.find((item) => item.type === 'photo')
   const resolution = media?.find((m) => m.kind === 'resolution')
   const isReporter = session?.user.id === issue.reporter_id
-  const isStaff = role === 'authority' || role === 'superadmin'
+  const isStaff = role === 'authority' || role === 'supervisor' || role === 'superadmin'
   const canUseGrievanceConversation = !!session && (isReporter || isStaff)
   const canReopen = isReporter && ['resolved', 'ai_validated', 'closed'].includes(issue.status ?? '')
 
@@ -98,9 +105,9 @@ export function IssueDetailPage() {
               <img src={mediaUrl(activeMedia.storage_path)} alt={issue.title ?? ''} className="aspect-video w-full object-cover" />
             </div>
           ) : null}
-          {originalMedia.length > 1 ? (
+          {visualMedia.length > 1 ? (
             <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Issue media gallery">
-              {originalMedia.map((item) => (
+              {visualMedia.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -114,6 +121,13 @@ export function IssueDetailPage() {
               ))}
             </div>
           ) : null}
+          {(supportingMedia.length > 0 || isReporter || isStaff) ? <Card>
+            <CardBody>
+              <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-display text-lg font-semibold">Supporting documents</h2><p className="text-sm text-muted">Photos, videos, audio, PDFs, certificates and other evidence.</p></div>{session && (isReporter || isStaff) ? <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm font-semibold hover:border-primary"><Paperclip className="size-4" /> Add evidence<input type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSupportingAttachment.mutate({ file, userId: session.user.id }); event.currentTarget.value = '' }} /></label> : null}</div>
+              <div className="mt-3 space-y-2">{supportingMedia.map((item) => item.type === 'audio' ? <audio key={item.id} controls className="w-full"><source src={mediaUrl(item.storage_path)} /></audio> : <a key={item.id} href={mediaUrl(item.storage_path)} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-surface-sunk px-3 py-2 text-sm font-medium hover:text-primary"><FileText className="size-4" /> {item.storage_path.split('/').at(-1) ?? 'Supporting document'}</a>)}</div>
+              {uploadSupportingAttachment.isError ? <p className="mt-2 text-xs text-status-rejected">{uploadSupportingAttachment.error.message}</p> : null}
+            </CardBody>
+          </Card> : null}
 
           {/* Title block */}
           <div>
@@ -154,7 +168,7 @@ export function IssueDetailPage() {
                 )}
               </div>
             ) : null}
-            {canReopen ? <div className="mt-4 rounded-xl border border-status-rejected/30 bg-status-rejected/5 p-3"><p className="mb-2 text-sm text-ink-soft">Is this grievance still unresolved?</p><Button size="sm" variant="outline" loading={withdraw.isPending} onClick={() => withdraw.mutate({ status: 'reopened' })}>Reopen grievance</Button></div> : null}
+            {canReopen ? <div className="mt-4 rounded-xl border border-status-rejected/30 bg-status-rejected/5 p-3"><p className="mb-2 text-sm text-ink-soft">Is this grievance still unresolved?</p>{!appealing ? <div className="flex gap-2"><Button size="sm" variant="outline" loading={withdraw.isPending} onClick={() => withdraw.mutate({ status: 'reopened' })}>Reopen grievance</Button><Button size="sm" variant="danger" onClick={() => setAppealing(true)}>Appeal to supervisor</Button></div> : <div className="space-y-2"><Textarea value={appealReason} onChange={(event) => setAppealReason(event.target.value)} placeholder="Explain why the resolution is unsatisfactory…" /><div className="flex gap-2"><Button size="sm" variant="danger" disabled={appealReason.trim().length < 10} loading={appeal.isPending} onClick={() => appeal.mutate({ reason: appealReason.trim() }, { onSuccess: () => { setAppealing(false); setAppealReason('') } })}>Submit appeal</Button><Button size="sm" variant="ghost" onClick={() => setAppealing(false)}>Cancel</Button></div></div>}</div> : null}
           </div>
 
           {/* AI explainable priority */}

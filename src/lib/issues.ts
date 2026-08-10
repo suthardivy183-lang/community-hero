@@ -81,6 +81,7 @@ export function trustTier(score: number): TrustTier {
 export const ROLE_LABELS: Record<UserRole, string> = {
   citizen: 'Citizen',
   authority: 'Authority',
+  supervisor: 'Department Supervisor',
   volunteer: 'Volunteer Verifier',
   superadmin: 'Super Admin',
 }
