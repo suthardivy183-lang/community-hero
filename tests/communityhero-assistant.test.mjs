@@ -21,3 +21,17 @@ test('the assistant queries only the signed-in citizen’s complaints and produc
   assert.match(source, /I can only answer from your saved grievance records/i)
   assert.doesNotMatch(source, /localStorage/)
 })
+
+test('the assistant reuses the established AI, voice, duplicate, location, and confirmed-submission flows', async () => {
+  const source = await readFile(page, 'utf8')
+
+  assert.match(source, /extractFromText/)
+  assert.match(source, /useSpeechRecognition/)
+  assert.match(source, /useSimilarIssues/)
+  assert.match(source, /LocationPicker/)
+  assert.match(source, /useCreatePublicGrievance/)
+  assert.match(source, /Confirm & Report/)
+  assert.match(source, /mutateAsync/)
+  assert.match(source, /create\.mutateAsync/)
+  assert.match(source, /possible similar active reports/i)
+})
