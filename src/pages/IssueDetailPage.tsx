@@ -154,6 +154,7 @@ export function IssueDetailPage() {
               {issue.severity_score != null
                 ? <SeverityBadge score={issue.severity_score} />
                 : <SeverityMeter severity={issue.severity ?? 5} />}
+              {session ? <Link to={`/assistant?issue=${id}`} className="rounded-lg border border-border-strong bg-surface px-2.5 py-1 text-xs font-semibold text-primary hover:border-primary">Ask Assistant about this complaint</Link> : null}
             </div>
             <p className="mt-3 leading-relaxed text-ink-soft">{issue.description}</p>
             {session?.user.id === issue.reporter_id && issue.status === 'reported' ? (

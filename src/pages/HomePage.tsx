@@ -128,6 +128,9 @@ export function HomePage() {
                 <Button size="sm" className="hidden sm:inline-flex" onClick={() => navigate('/report')}>
                   <Plus className="size-4" /> Report issue
                 </Button>
+                <Button size="sm" variant="outline" className="hidden md:inline-flex" onClick={() => navigate('/assistant?context=map')}>
+                  Ask Assistant
+                </Button>
               </div>
             </div>
             <div className="h-[60vh] lg:h-[calc(100vh-11rem)]">

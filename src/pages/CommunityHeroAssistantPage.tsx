@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Bot, CheckCircle2, ChevronRight, LocateFixed, Mic, Send, ShieldCheck, Square } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useMyGrievanceSummaries, type MyGrievanceSummary } from '@/features/grievances/queries'
@@ -22,6 +22,7 @@ import { StatusBadge } from '@/components/issue/StatusBadge'
 
 type ChatMessage = { id: string; sender: 'citizen' | 'assistant'; body: string }
 type VoiceLanguage = AppLanguage | 'mr' | 'bn' | 'ta' | 'te' | 'kn' | 'ml'
+type IntakeStage = 'idle' | 'clarifying' | 'review'
 
 const minimumAutoFillConfidence = 0.72
 const openingMessage: ChatMessage = {
@@ -60,6 +61,7 @@ function isStatusQuestion(question: string) {
 }
 
 export function CommunityHeroAssistantPage() {
+  const navigate = useNavigate()
   const { session } = useAuth()
   const { data: issues = [], isLoading, isError } = useMyGrievanceSummaries(session?.user.id)
   const { data: categories = [] } = useCategories()
@@ -68,6 +70,7 @@ export function CommunityHeroAssistantPage() {
   const speech = useSpeechRecognition()
   const create = useCreatePublicGrievance()
   const [searchParams, setSearchParams] = useSearchParams()
+  const context = searchParams.get('context')
   const [selectedIssueId, setSelectedIssueId] = useState(searchParams.get('issue') ?? '')
   const [draft, setDraft] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([openingMessage])
@@ -82,6 +85,8 @@ export function CommunityHeroAssistantPage() {
   const [analysisConfidence, setAnalysisConfidence] = useState<number | null>(null)
   const [clarificationQuestions, setClarificationQuestions] = useState<string[]>([])
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [intakeStage, setIntakeStage] = useState<IntakeStage>('idle')
+  const [intakeNarrative, setIntakeNarrative] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const selectedIssue = useMemo(() => issues.find((issue) => issue.id === selectedIssueId) ?? null, [issues, selectedIssueId])
@@ -128,6 +133,7 @@ export function CommunityHeroAssistantPage() {
     const confidence = result.confidence ?? 0
     setAnalysisConfidence(confidence)
     setClarificationQuestions(result.clarificationQuestions ?? [])
+    setIntakeNarrative(sourceText)
     if (confidence >= minimumAutoFillConfidence) {
       const category = categories.find((item) => item.slug === result.categorySlug)
       if (category) {
@@ -140,6 +146,9 @@ export function CommunityHeroAssistantPage() {
       setDescription(result.description || sourceText)
       setSeverity(result.severity)
       setReviewOpen(true)
+      setIntakeStage('review')
+    } else {
+      setIntakeStage('clarifying')
     }
     addAssistantReply(result.assistantReply || (confidence < minimumAutoFillConfidence
       ? 'I am not fully certain yet. Please answer the clarification questions, then I will prepare a review for you.'
@@ -165,11 +174,24 @@ export function CommunityHeroAssistantPage() {
     }
   }
 
+  async function askClarification(answer: string) {
+    const combined = `${intakeNarrative}\nAdditional detail: ${answer}`.trim()
+    await understandIssue(combined)
+  }
+
+  function handoffEvidence() {
+    navigate('/report?assistantEvidence=true')
+  }
+
   async function ask(question: string) {
     const trimmed = question.trim()
     if (!trimmed) return
     setMessages((current) => [...current, { id: crypto.randomUUID(), sender: 'citizen', body: trimmed }])
     setDraft('')
+    if (intakeStage === 'clarifying') {
+      await askClarification(trimmed)
+      return
+    }
     if (!isStatusQuestion(trimmed)) {
       await understandIssue(trimmed)
       return
@@ -197,6 +219,7 @@ export function CommunityHeroAssistantPage() {
       })
       addAssistantReply(`Your complaint ${result.complaint_number} has been submitted successfully. I can now explain its status whenever you ask.`)
       setReviewOpen(false)
+      setIntakeStage('idle')
       chooseIssue(result.issue_id)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'We could not submit the grievance. Please try again.')
@@ -213,6 +236,8 @@ export function CommunityHeroAssistantPage() {
         <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Civic intelligence</p><h1 className="font-display text-3xl font-semibold">CommunityHero Assistant</h1><p className="mt-1 text-sm text-muted">Describe a civic problem naturally, or ask about one of your saved grievances. AI suggestions always need your review.</p></div>
       </div>
 
+      {context === 'map' ? <div className="mb-5 rounded-xl border border-primary/25 bg-primary-tint/25 p-3 text-sm text-ink-soft">Map context is active. Tell me what problem is near you and I will use your selected location to find similar reports.</div> : null}
+
       <Card className="border-primary/25"><CardBody>
         <label className="text-sm font-semibold" htmlFor="assistant-complaint">Complaint context</label>
         <select id="assistant-complaint" value={selectedIssueId} onChange={(event) => chooseIssue(event.target.value)} className="mt-2 w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm"><option value="">Choose a complaint to discuss…</option>{issues.map((issue) => <option key={issue.id} value={issue.id ?? ''}>{issue.title ?? 'Untitled grievance'} — {STATUS_META[issue.status ?? 'reported'].label}</option>)}</select>
@@ -227,10 +252,15 @@ export function CommunityHeroAssistantPage() {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {speech.supported ? (speech.listening ? <Button type="button" variant="danger" size="sm" onClick={speech.stop}><Square className="size-4" /> Stop</Button> : <Button type="button" variant="outline" size="sm" onClick={() => speech.start(activeLanguage)}><Mic className="size-4" /> Voice</Button>) : <span className="text-xs text-muted">Voice input works in supported browsers.</span>}
           <Button type="button" loading={analysing} disabled={!draft.trim()} onClick={() => void ask(draft)}><Send className="size-4" /> Understand</Button>
-          {speech.listening ? <span className="text-xs font-semibold text-primary">Listening…</span> : null}{analysing ? <span className="text-xs font-semibold text-primary">Understanding…</span> : null}
+          {speech.listening ? <span className="text-xs font-semibold text-primary">Listening…</span> : null}
+          {!speech.listening && speech.transcript ? <span className="text-xs font-semibold text-primary">Transcribing…</span> : null}
+          {analysing ? <span className="text-xs font-semibold text-primary">Understanding…</span> : null}
         </div>
         {speech.error ? <FieldError>{`Voice input: ${speech.error}`}</FieldError> : null}
+        <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-primary hover:underline">Attach image, video, audio, or document<input type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" onChange={(event) => { if (event.target.files?.[0]) handoffEvidence(); event.currentTarget.value = '' }} /></label>
       </CardBody></Card>
+
+      {intakeStage === 'clarifying' ? <Card className="mt-5 border-primary/25"><CardBody><p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">One step at a time</p><h2 className="mt-1 font-display text-xl font-semibold">A little more detail will help</h2><p className="mt-1 text-sm text-muted">Reply in the conversation box; I will update the same draft rather than starting over.</p>{clarificationQuestions.length ? <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink-soft">{clarificationQuestions.map((question) => <li key={question}>{question}</li>)}</ul> : null}</CardBody></Card> : null}
 
       {reviewOpen ? <Card className="mt-5 border-primary/30"><CardBody className="space-y-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">AI-generated review</p><h2 className="font-display text-2xl font-semibold">Review before reporting</h2><p className="mt-1 text-sm text-muted">This is a suggestion, not a submitted complaint.</p></div>{analysisConfidence != null ? <span className="rounded-full bg-primary-tint px-3 py-1 text-xs font-semibold text-primary">AI confidence {Math.round(analysisConfidence * 100)}%</span> : null}</div>
         {clarificationQuestions.length ? <div className="rounded-xl bg-primary-tint/35 p-3"><p className="text-xs font-semibold uppercase tracking-wide text-primary">Please clarify if you can</p><ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">{clarificationQuestions.map((question) => <li key={question}>{question}</li>)}</ul></div> : null}
@@ -238,7 +268,7 @@ export function CommunityHeroAssistantPage() {
         <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="assistant-category">Service area</Label><select id="assistant-category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm"><option value="">Choose a service area…</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div><div><Label htmlFor="assistant-department">Responsible department</Label><select id="assistant-department" value={departmentId ?? ''} onChange={(event) => setDepartmentId(event.target.value || null)} className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm"><option value="">Let the system route it</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></div></div>
         <div><Label htmlFor="assistant-severity" hint={`${severity}/10`}>Suggested priority</Label><input id="assistant-severity" type="range" min="1" max="10" value={severity} onChange={(event) => setSeverity(Number(event.target.value))} className="w-full accent-[var(--color-primary)]" /></div>
         <div><div className="flex items-center justify-between gap-2"><Label className="mb-0">Location</Label><Button type="button" variant="ghost" size="sm" onClick={locate}><LocateFixed className="size-4" /> Use my location</Button></div><div className="mt-3 h-52 overflow-hidden rounded-xl border border-border"><LocationPicker value={coords} onChange={setCoords} className="size-full" /></div><p className="mt-2 text-sm text-muted">{address ?? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`}</p></div>
-        {similar.data?.length ? <div className="rounded-xl border border-status-warning/30 bg-status-warning/5 p-3"><p className="font-semibold">{similar.data.length} possible similar active reports nearby</p>{similar.data.slice(0, 3).map((issue) => <div key={issue.id} className="mt-2 flex items-center justify-between gap-2 text-sm"><span>{issue.title} · {Math.round(issue.distance_m)}m away</span><Link to={`/issue/${issue.id}`} className="font-semibold text-primary hover:underline">Support existing complaint</Link></div>)}</div> : null}
+        {similar.data?.length ? <div className="rounded-xl border border-status-warning/30 bg-status-warning/5 p-3"><p className="font-semibold">{similar.data.length} possible similar active reports nearby</p>{similar.data.slice(0, 3).map((issue) => <div key={issue.id} className="mt-2 flex items-center justify-between gap-2 text-sm"><span>{issue.title} · {Math.round(issue.distance_m)}m away</span><Link to={`/issue/${issue.id}`} className="font-semibold text-primary hover:underline">Support existing complaint</Link></div>)}<Button type="button" size="sm" variant="outline" className="mt-3" onClick={() => setReviewOpen(true)}>Create new report</Button></div> : null}
         <div className="flex flex-wrap gap-2"><Button type="button" loading={create.isPending} onClick={() => void confirmAndReport()}><CheckCircle2 className="size-4" /> Confirm & Report</Button><Button type="button" variant="outline" onClick={() => setReviewOpen(false)}>Keep editing later</Button></div>
       </CardBody></Card> : null}
 
