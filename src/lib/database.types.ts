@@ -424,6 +424,7 @@ export type Database = {
           closed_at: string | null
           comment_count: number
           complaint_number: string | null
+          consent_to_share: boolean
           confirm_count: number
           created_at: string
           department_id: string | null
@@ -432,10 +433,12 @@ export type Database = {
           geom: unknown
           id: string
           image_hash: string | null
+          is_confidential: boolean
           near_hospital: boolean
           near_school: boolean
           reporter_id: string
           resolved_at: string | null
+          data_retention_until: string | null
           road_class: string | null
           severity: number
           severity_factors: Json
@@ -453,6 +456,7 @@ export type Database = {
           closed_at?: string | null
           comment_count?: number
           complaint_number?: string | null
+          consent_to_share?: boolean
           confirm_count?: number
           created_at?: string
           department_id?: string | null
@@ -461,10 +465,12 @@ export type Database = {
           geom: unknown
           id?: string
           image_hash?: string | null
+          is_confidential?: boolean
           near_hospital?: boolean
           near_school?: boolean
           reporter_id: string
           resolved_at?: string | null
+          data_retention_until?: string | null
           road_class?: string | null
           severity?: number
           severity_factors?: Json
@@ -482,6 +488,7 @@ export type Database = {
           closed_at?: string | null
           comment_count?: number
           complaint_number?: string | null
+          consent_to_share?: boolean
           confirm_count?: number
           created_at?: string
           department_id?: string | null
@@ -490,10 +497,12 @@ export type Database = {
           geom?: unknown
           id?: string
           image_hash?: string | null
+          is_confidential?: boolean
           near_hospital?: boolean
           near_school?: boolean
           reporter_id?: string
           resolved_at?: string | null
+          data_retention_until?: string | null
           road_class?: string | null
           severity?: number
           severity_factors?: Json
@@ -902,12 +911,14 @@ export type Database = {
           category_slug: string | null
           closed_at: string | null
           comment_count: number | null
+          consent_to_share: boolean | null
           confirm_count: number | null
           created_at: string | null
           department_id: string | null
           department_name: string | null
           description: string | null
           id: string | null
+          is_confidential: boolean | null
           lat: number | null
           lng: number | null
           near_hospital: boolean | null
@@ -1094,6 +1105,22 @@ export type Database = {
       assign_issue_officer: {
         Args: { p_issue_id: string; p_officer_id: string }
         Returns: undefined
+      }
+      set_issue_privacy: {
+        Args: { p_issue_id: string; p_is_confidential: boolean; p_consent_to_share?: boolean }
+        Returns: undefined
+      }
+      import_open311_status: {
+        Args: { p_external_reference: string; p_status: Database["public"]["Enums"]["issue_status"]; p_note?: string | null; p_payload?: Json }
+        Returns: string
+      }
+      public_transparency_summary: {
+        Args: never
+        Returns: { total_complaints: number; resolved_complaints: number; average_response_hours: number | null; escalation_rate: number | null }[]
+      }
+      request_data_deletion: {
+        Args: { p_reason?: string | null }
+        Returns: string
       }
       create_issue: {
         Args: {
