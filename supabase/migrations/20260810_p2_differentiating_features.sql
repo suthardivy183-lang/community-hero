@@ -16,15 +16,14 @@ create or replace view public.issues_view
 with (security_invoker = true)
 as
 select
-  i.id, i.title, i.description, i.category_id, i.department_id, i.reporter_id,
-  i.status, i.severity, i.severity_score, i.severity_factors, i.tags, i.ai_meta,
-  i.address, st_y(i.geom::geometry)::double precision as lat, st_x(i.geom::geometry)::double precision as lng,
-  i.near_hospital, i.near_school, i.road_class, i.created_at, i.acknowledged_at,
-  i.resolved_at, i.closed_at, i.vote_count, i.confirm_count, i.comment_count,
-  i.is_confidential, i.consent_to_share,
+  i.id, i.reporter_id, i.title, i.description, i.category_id, i.department_id,
+  i.severity, i.severity_score, i.severity_factors, i.near_hospital, i.near_school,
+  i.road_class, i.status, i.address, i.tags, i.ai_meta, i.confirm_count, i.vote_count,
+  i.comment_count, i.created_at, i.acknowledged_at, i.resolved_at, i.closed_at,
+  st_y(i.geom::geometry)::double precision as lat, st_x(i.geom::geometry)::double precision as lng,
   c.name as category_name, c.slug as category_slug, c.icon as category_icon,
-  d.name as department_name,
-  p.full_name as reporter_name, p.avatar_url as reporter_avatar, p.trust_score as reporter_trust
+  d.name as department_name, p.full_name as reporter_name, p.avatar_url as reporter_avatar,
+  p.trust_score as reporter_trust, i.is_confidential, i.consent_to_share
 from public.issues i
 left join public.categories c on c.id = i.category_id
 left join public.departments d on d.id = i.department_id

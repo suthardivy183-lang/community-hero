@@ -29,10 +29,11 @@ const FALLBACK_COPY: Record<string, { reply: string; questions: string[] }> = {
   te: { reply: 'సరైన శాఖకు పంపడానికి ఇంకొంత సమాచారం అవసరం.', questions: ['ఇది ఏ ప్రభుత్వ సేవ లేదా శాఖకు సంబంధించినది?', 'ఏమి జరిగింది, ఎప్పుడు ప్రారంభమైంది?'] },
   kn: { reply: 'ಸರಿಯಾದ ಇಲಾಖೆಗೆ ಕಳುಹಿಸಲು ಇನ್ನಷ್ಟು ಮಾಹಿತಿ ಬೇಕಾಗಿದೆ.', questions: ['ಇದು ಯಾವ ಸರ್ಕಾರಿ ಸೇವೆ ಅಥವಾ ಇಲಾಖೆಗೆ ಸಂಬಂಧಿಸಿದೆ?', 'ಏನಾಯಿತು ಮತ್ತು ಅದು ಯಾವಾಗ ಆರಂಭವಾಯಿತು?'] },
   ml: { reply: 'ശരിയായ വകുപ്പിലേക്ക് അയയ്ക്കാൻ കുറച്ച് കൂടുതൽ വിവരങ്ങൾ വേണം.', questions: ['ഇത് ഏത് സർക്കാർ സേവനമോ വകുപ്പിനെയോ കുറിച്ചാണ്?', 'എന്താണ് സംഭവിച്ചത്, എപ്പോഴാണ് ആരംഭിച്ചത്?'] },
+  mixed: { reply: 'I need a little more detail / सही विभाग तक भेजने के लिए थोड़ी और जानकारी चाहिए।', questions: ['Which government service is this about? / यह किस सरकारी सेवा से जुड़ा है?', 'What happened and when? / क्या हुआ और कब शुरू हुआ?'] },
 }
 
 function clarificationCopy(replyLanguage: string) {
-  return FALLBACK_COPY[replyLanguage] ?? FALLBACK_COPY.en
+  return FALLBACK_COPY[replyLanguage.startsWith('mixed:') ? 'mixed' : replyLanguage] ?? FALLBACK_COPY.en
 }
 
 function detectLanguages(text: string) {
@@ -78,7 +79,8 @@ Deno.serve(async (req: Request) => {
   if (!text) return json({ error: 'A grievance description is required' }, 400)
   if (!hasGemini()) return json(fallback(text, hints, detectedLanguages, replyLanguage))
 
-  const prompt = `You are an Indian public-service grievance intake assistant. The citizen may write in English, Hindi, Gujarati, or mixed Indian languages. Detected languages: ${detectedLanguages.join(', ')}. Reply in ${replyLanguage}, while preserving the citizen's facts.
+  const isMixedReply = replyLanguage.startsWith('mixed:')
+  const prompt = `You are an Indian public-service grievance intake assistant. The citizen may write in English, Hindi, Gujarati, or mixed Indian languages. Detected languages: ${detectedLanguages.join(', ')}. ${isMixedReply ? `Reply naturally using the same language mix (${replyLanguage.slice(6)}); do not collapse it to just one language.` : `Reply in ${replyLanguage}.`} Preserve the citizen's facts.
 Allowed category slugs: ${hints.join(', ')}.
 Citizen's message: ${text}
 Return STRICT JSON with categorySlug (one allowed slug; use other only if allowed), title (under 100 chars), description (clear factual 2-3 sentences), severity (integer 1-10), confidence (0..1), tags (2-4 lowercase strings), detectedLanguages (array), replyLanguage, assistantReply (brief reply in the requested language), and clarificationQuestions (0-3 questions in the requested language). If confidence is below 0.72, leave unclear fields conservative and use clarificationQuestions. Do not invent facts.`

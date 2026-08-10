@@ -60,6 +60,7 @@ export function GrievanceAssistantPage() {
   const selectedCategory = useMemo(() => categories.find((item) => item.id === categoryId), [categories, categoryId])
   const detectedLanguage = useMemo(() => detectLanguage(message), [message])
   const activeLanguage = language === 'auto' ? detectedLanguage.replyLanguage : language
+  const aiReplyLanguage = language === 'auto' && detectedLanguage.isMixed ? `mixed:${detectedLanguage.languages.join('+')}` : activeLanguage
 
   useEffect(() => { locate() }, [locate])
   // Geolocation is an external event; copy its result into the editable map state.
@@ -115,7 +116,7 @@ export function GrievanceAssistantPage() {
       applyAnalysis(await extractFromText({
         text: message,
         hintCategorySlugs: categories.map((item) => item.slug),
-        replyLanguage: activeLanguage,
+        replyLanguage: aiReplyLanguage,
         detectedLanguages: detectedLanguage.languages,
       }))
     } catch {
@@ -215,7 +216,7 @@ export function GrievanceAssistantPage() {
           </div>
           {speech.listening ? <p className="mt-2 text-xs font-semibold text-primary">● Listening in {languages.find((item) => item.value === activeLanguage)?.label}…</p> : null}
           {speech.error ? <p className="mt-2 text-xs text-status-rejected">Voice input: {speech.error}</p> : null}
-          {message.trim() ? <p className="mt-2 text-xs text-muted">{detectedLanguage.isMixed ? `Mixed language detected: ${detectedLanguage.languages.join(' + ')}. AI will reply in ${activeLanguage}.` : `Detected language: ${activeLanguage}.`}</p> : null}
+          {message.trim() ? <p className="mt-2 text-xs text-muted">{detectedLanguage.isMixed ? `Mixed language detected: ${detectedLanguage.languages.join(' + ')}. AI will reply using the same language mix.` : `Detected language: ${activeLanguage}.`}</p> : null}
           <div className="mt-4 rounded-xl border border-primary/20 bg-surface p-3" aria-live="polite">
             <div className="flex items-center justify-between gap-3">
               <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Bot className="size-4" /> AI analysis</p>
