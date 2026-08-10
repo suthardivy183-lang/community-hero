@@ -33,7 +33,17 @@ const FALLBACK_COPY: Record<string, { reply: string; questions: string[] }> = {
 }
 
 function clarificationCopy(replyLanguage: string) {
-  return FALLBACK_COPY[replyLanguage.startsWith('mixed:') ? 'mixed' : replyLanguage] ?? FALLBACK_COPY.en
+  if (replyLanguage.startsWith('mixed:')) {
+    const languages = replyLanguage.slice(6).split('+').filter((language) => FALLBACK_COPY[language]).slice(0, 3)
+    const copies = languages.map((language) => FALLBACK_COPY[language])
+    if (copies.length) {
+      return {
+        reply: copies.map((copy) => copy.reply).join(' / '),
+        questions: copies.map((copy) => copy.questions[0]).filter(Boolean).slice(0, 3),
+      }
+    }
+  }
+  return FALLBACK_COPY[replyLanguage] ?? FALLBACK_COPY.en
 }
 
 function detectLanguages(text: string) {

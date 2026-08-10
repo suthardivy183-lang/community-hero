@@ -33,5 +33,6 @@ test('edge intake returns language-aware clarification data', () => {
   assert.match(edge, /confidence is below 0\.72/)
   assert.match(edge, /FALLBACK_COPY/)
   assert.match(edge, /same language mix/)
+  assert.match(edge, /replyLanguage\.slice\(6\)\.split\('\+'\)/)
   assert.match(edge, /modelReply \|\| \(confidence < 0\.72 \? clarificationCopy\(replyLanguage\)\.reply/)
 })
