@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MapPin, Plus, Trophy, LayoutDashboard, LogOut, User, Sparkles, Globe, Shield } from 'lucide-react'
+import { MapPin, Plus, Trophy, LayoutDashboard, LogOut, User, Sparkles, Globe, Shield, BarChart3 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -8,6 +8,7 @@ import { ROLE_LABELS, LANGUAGE_LABELS, type AppLanguage } from '@/lib/issues'
 import { setLanguage } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
 import { NotificationBell } from './NotificationBell'
+import { AccessibilityMenu } from '@/features/accessibility/AccessibilityProvider'
 import { cn } from '@/lib/utils'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -49,10 +50,14 @@ export function Header() {
           <NavLink to="/leaderboard" className={navLinkClass}>
             <Trophy className="size-4" /> {t('nav.leaderboard')}
           </NavLink>
+          <NavLink to="/transparency" className={navLinkClass}>
+            <BarChart3 className="size-4" /> Transparency
+          </NavLink>
         </nav>
 
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <NotificationBell />
+          <AccessibilityMenu />
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="grid size-9 place-items-center rounded-lg border border-border bg-surface text-ink-soft transition-colors hover:border-border-strong" aria-label="Language">

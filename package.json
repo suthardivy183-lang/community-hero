@@ -11,6 +11,7 @@
     "test:notifications": "node --test tests/notification-workflow.test.mjs",
     "test:grievance": "node --test tests/grievance-p0.test.mjs",
     "test:grievance-p1": "node --test tests/grievance-p1.test.mjs",
+    "test:grievance-p2": "node --test tests/grievance-p2.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

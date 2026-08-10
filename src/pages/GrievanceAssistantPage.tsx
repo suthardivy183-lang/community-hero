@@ -11,6 +11,7 @@ import { reverseGeocode } from '@/lib/geocode'
 import { LocationPicker } from '@/components/map/LocationPicker'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { ChannelAccess } from '@/components/grievance/ChannelAccess'
 import { FieldError, Input, Label, Textarea } from '@/components/ui/Field'
 import type { AppLanguage } from '@/lib/issues'
 
@@ -165,6 +166,7 @@ export function GrievanceAssistantPage() {
           {speech.error ? <p className="mt-2 text-xs text-status-rejected">Voice input: {speech.error}</p> : null}
         </CardBody>
       </Card>
+      <ChannelAccess />
 
       <Card className="mt-5">
         <CardBody className="space-y-4">

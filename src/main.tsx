@@ -7,6 +7,7 @@ import './lib/i18n'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/AuthProvider.tsx'
 import { ErrorBoundary } from './components/layout/ErrorBoundary.tsx'
+import { AccessibilityProvider } from './features/accessibility/AccessibilityProvider.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,9 +26,11 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <AccessibilityProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </AccessibilityProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

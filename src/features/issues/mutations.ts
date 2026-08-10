@@ -48,6 +48,8 @@ export interface CreateIssueInput {
   aiMeta: Record<string, unknown>
   media: CreateIssueMedia
   uploaderId: string
+  isConfidential?: boolean
+  consentToShare?: boolean
 }
 
 async function uploadBlob(blob: Blob, path: string, contentType: string): Promise<void> {
@@ -110,6 +112,14 @@ export function useCreateIssue() {
           type: 'photo',
           storage_path: posterPath,
         })
+      }
+      if (input.isConfidential || input.consentToShare) {
+        const { error: privacyError } = await supabase.rpc('set_issue_privacy', {
+          p_issue_id: issueId,
+          p_is_confidential: input.isConfidential ?? false,
+          p_consent_to_share: input.consentToShare ?? false,
+        })
+        if (privacyError) throw privacyError
       }
       return issueId
     },

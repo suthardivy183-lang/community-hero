@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Award, Lock, MapPin, Share2, Pencil } from 'lucide-react'
+import { Award, Lock, MapPin, Share2, Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useBadges, useUserBadges } from '@/features/community/queries'
 import { useIssues } from '@/features/issues/queries'
@@ -45,6 +45,7 @@ export function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
   const [shareLabel, setShareLabel] = useState('Share profile')
+  const [deletionStatus, setDeletionStatus] = useState<string | null>(null)
   const ownedSet = new Set(owned ?? [])
 
   return (
@@ -132,6 +133,8 @@ export function ProfilePage() {
           </CardBody>
         </Card>
       ) : null}
+
+      {session && profile ? <Card className="mt-6 border-status-rejected/25"><CardBody><h2 className="font-display text-lg font-semibold">Privacy and data</h2><p className="mt-1 text-sm text-muted">Request deletion of your personal profile data. Complaint records may be retained in de-identified form where public-service rules require it.</p><Button className="mt-3" variant="outline" size="sm" onClick={async () => { if (!window.confirm('Request deletion of your CommunityHero personal data?')) return; try { await supabase.rpc('request_data_deletion', { p_reason: 'Requested from profile privacy controls' }); setDeletionStatus('Request received. A super administrator will review it.'); } catch { setDeletionStatus('Could not submit the deletion request. Please try again.'); } }}><Trash2 className="size-4" /> Request data deletion</Button>{deletionStatus ? <p className="mt-2 text-xs text-muted">{deletionStatus}</p> : null}</CardBody></Card> : null}
 
       {/* Badges */}
       <h2 className="mb-3 mt-6 font-display text-lg font-semibold">Achievements</h2>

@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight, Pencil, Video, ImagePlus } from 'lucide-react'
+import { Camera, Sparkles, MapPin, Loader2, Users, ArrowRight, Pencil, Video, ImagePlus, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCategories } from '@/features/issues/queries'
 import { useSimilarIssues } from '@/features/issues/nearby'
@@ -49,6 +49,8 @@ export function ReportPage() {
   const [error, setError] = useState<string | null>(null)
   const [demoSubmitted, setDemoSubmitted] = useState(false)
   const [demoJoinedIssueId, setDemoJoinedIssueId] = useState<string | null>(null)
+  const [isConfidential, setIsConfidential] = useState(false)
+  const [consentToShare, setConsentToShare] = useState(false)
   const photoCameraRef = useRef<HTMLInputElement>(null)
   const videoCameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
@@ -177,6 +179,8 @@ export function ReportPage() {
           posterBlob: media.posterBlob,
         },
         uploaderId: session.user.id,
+        isConfidential,
+        consentToShare,
       })
       navigate(`/issue/${id}`)
     } catch (err) {
@@ -205,6 +209,17 @@ export function ReportPage() {
                 <span className="mt-1 block text-xs text-muted">Upload evidence only; you control every report detail.</span>
               </button>
             </div>
+          </CardBody>
+        </Card>
+
+        <Card className={isConfidential ? 'border-primary/40 bg-primary-tint/20' : undefined}>
+          <CardBody>
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1"><p className="font-semibold">Privacy controls</p><p className="mt-1 text-sm text-muted">Choose how this report appears outside the responsible department.</p></div>
+            </div>
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 hover:border-border-strong"><input type="checkbox" checked={isConfidential} onChange={(event) => setIsConfidential(event.target.checked)} className="mt-0.5 size-4 accent-[var(--color-primary)]" /><span><span className="block text-sm font-semibold">Keep my identity private</span><span className="mt-0.5 block text-xs text-muted">Hide this complaint, its location, and your identity from public maps and transparency views. Only the assigned department can access it.</span></span></label>
+            {!isConfidential ? <label className="mt-2 flex cursor-pointer items-start gap-3 px-3 py-2"><input type="checkbox" checked={consentToShare} onChange={(event) => setConsentToShare(event.target.checked)} className="mt-0.5 size-4 accent-[var(--color-primary)]" /><span><span className="block text-sm font-medium">I consent to show this report publicly</span><span className="block text-xs text-muted">Your name is still not required for public problem tracking.</span></span></label> : null}
           </CardBody>
         </Card>
 
