@@ -28,7 +28,17 @@ function getCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-const LANG_MAP: Record<string, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN' }
+const LANG_MAP: Record<string, string> = {
+  en: 'en-IN',
+  hi: 'hi-IN',
+  gu: 'gu-IN',
+  mr: 'mr-IN',
+  bn: 'bn-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  kn: 'kn-IN',
+  ml: 'ml-IN',
+}
 
 interface SpeechState {
   supported: boolean
@@ -40,7 +50,7 @@ interface SpeechState {
   reset: () => void
 }
 
-/** Web Speech API wrapper for voice complaints (EN/HI/GU, free, in-browser). */
+/** Web Speech API wrapper for multilingual voice complaints, free and in-browser. */
 export function useSpeechRecognition(): SpeechState {
   const [supported] = useState(() => !!getCtor())
   const [listening, setListening] = useState(false)

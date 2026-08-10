@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MapPin, Plus, Trophy, LayoutDashboard, LogOut, User, Sparkles, Globe, Shield, BarChart3 } from 'lucide-react'
+import { MapPin, Plus, Trophy, LayoutDashboard, LogOut, User, Sparkles, Globe, Shield, BarChart3, Bot } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -75,6 +75,9 @@ export function Header() {
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
 
+          <Button size="sm" variant="outline" className="hidden lg:inline-flex" onClick={() => navigate('/grievance')}>
+            <Bot className="size-4" /> AI assistant
+          </Button>
           <Button size="sm" className="hidden lg:inline-flex" onClick={() => navigate('/grievance')}>
             <Plus className="size-4" /> {t('nav.report')}
           </Button>
