@@ -62,6 +62,8 @@ export function GrievanceAssistantPage() {
   const activeLanguage = language === 'auto' ? detectedLanguage.replyLanguage : language
 
   useEffect(() => { locate() }, [locate])
+  // Geolocation is an external event; copy its result into the editable map state.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (browserCoords) setCoords(browserCoords) }, [browserCoords])
   useEffect(() => {
     let cancelled = false
@@ -71,10 +73,18 @@ export function GrievanceAssistantPage() {
     return () => { cancelled = true }
   }, [coords])
   useEffect(() => {
-    if (speech.transcript) setMessage(speech.transcript)
+    if (speech.transcript) {
+      // Speech recognition delivers external input that must update the form field.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessage(speech.transcript)
+    }
   }, [speech.transcript])
   useEffect(() => {
-    if (selectedCategory?.default_department_id) setDepartmentId(selectedCategory.default_department_id)
+    if (selectedCategory?.default_department_id) {
+      // Selecting a category intentionally updates the dependent department field.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDepartmentId(selectedCategory.default_department_id)
+    }
   }, [selectedCategory?.default_department_id])
 
   function applyAnalysis(result: IssueAnalysis) {
@@ -160,6 +170,7 @@ export function GrievanceAssistantPage() {
             <p className="mt-4 text-sm text-muted">Keep this reference for tracking and conversations with the department.</p>
             <div className="mx-auto mt-5 max-w-sm rounded-2xl border border-primary/25 bg-surface px-5 py-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">{created.referenceLabel}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted">Complaint number</p>
               <p className="mt-1 font-mono text-2xl font-bold text-primary">{created.complaintNumber}</p>
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-2">

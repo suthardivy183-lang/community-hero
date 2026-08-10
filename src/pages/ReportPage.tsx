@@ -56,11 +56,14 @@ export function ReportPage() {
   const galleryRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { locate() }, [locate])
+  // Geolocation is an external event; copy its result into the editable map state.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (geoCoords) setCoords(geoCoords) }, [geoCoords])
 
   // Reverse-geocode + fetch civic context (hospital/school/road) whenever the pin moves.
   useEffect(() => {
     let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGeocoding(true)
     reverseGeocode(coords.lat, coords.lng).then((addr) => {
       if (!cancelled) { setAddress(addr); setGeocoding(false) }

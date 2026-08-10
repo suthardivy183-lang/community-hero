@@ -29,10 +29,11 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
   const [minUrgency, setMinUrgency] = useState('0')
   const [location, setLocation] = useState('')
   const [maxAgeDays, setMaxAgeDays] = useState('all')
+  const [now] = useState(() => Date.now())
   const { data: departments } = useDepartments()
   const assignDepartment = useAssignDepartment()
   const filtered = useMemo(() => issues.filter((issue) => {
-    const ageDays = issue.created_at ? (Date.now() - new Date(issue.created_at).getTime()) / 86_400_000 : 0
+    const ageDays = issue.created_at ? (now - new Date(issue.created_at).getTime()) / 86_400_000 : 0
     const open = !['resolved', 'ai_validated', 'closed', 'rejected'].includes(issue.status ?? 'reported')
     const urgency = issue.severity_score ?? (issue.severity ?? 0) * 10
     if (pendingOnly && !open) return false
@@ -41,7 +42,7 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
     if (location.trim() && !(issue.address ?? '').toLowerCase().includes(location.trim().toLowerCase())) return false
     if (maxAgeDays !== 'all' && ageDays > Number(maxAgeDays)) return false
     return true
-  }), [issues, location, maxAgeDays, minUrgency, overdueOnly, pendingOnly])
+  }), [issues, location, maxAgeDays, minUrgency, now, overdueOnly, pendingOnly])
   const { data: assignments } = useIssueAssignments(filtered.map((issue) => issue.id as string))
   // Sort by AI priority score (severity + community + context + age + emergency).
   const ordered = [...filtered].sort((a, b) => computePriority(b).score - computePriority(a).score)
@@ -50,12 +51,18 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
   }
 
   function toggleSelected(id: string) {
-    setSelected((items) => { const next = new Set(items); next.has(id) ? next.delete(id) : next.add(id); return next })
+    setSelected((items) => {
+      const next = new Set(items)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   async function bulkStatus(status: IssueStatus) {
     if (!selected.size) return
-    setBulkBusy(true); setBulkErrors([])
+    setBulkBusy(true)
+    setBulkErrors([])
     const errors: string[] = []
     for (const id of selected) {
       try {
@@ -63,7 +70,8 @@ export function TriageBoard({ issues }: { issues: IssueView[] }) {
         else updateDemoStatus(id, status)
       } catch (error) { errors.push(`${id}: ${error instanceof Error ? error.message : 'could not update status'}`) }
     }
-    setBulkErrors(errors); setBulkBusy(false)
+    setBulkErrors(errors)
+    setBulkBusy(false)
     if (!errors.length) setSelected(new Set())
   }
 
@@ -165,7 +173,8 @@ function TriageRow({ issue, assignment, selected, onToggle, demoStatus, onDemoSt
             onChange={(e) => {
               if (!e.target.value) return
               const next = e.target.value as IssueStatus
-              session ? change.mutate({ status: next }) : onDemoStatusChange(issue.id as string, next)
+              if (session) change.mutate({ status: next })
+              else onDemoStatusChange(issue.id as string, next)
             }}
             className="rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-xs font-medium focus:border-primary focus:outline-none"
           >

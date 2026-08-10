@@ -40,6 +40,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAccessibility() {
   const value = useContext(AccessibilityContext)
   if (!value) throw new Error('useAccessibility must be used inside AccessibilityProvider')
