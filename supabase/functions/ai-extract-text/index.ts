@@ -14,6 +14,7 @@ interface ExtractBody {
   hintCategorySlugs: string[]
   replyLanguage?: string
   detectedLanguages?: string[]
+  intakeStep?: 'initial' | 'followup'
 }
 
 const DEPARTMENTS: Record<string, string> = {
@@ -94,14 +95,15 @@ Deno.serve(async (req: Request) => {
   const hints = Array.isArray(body.hintCategorySlugs) ? body.hintCategorySlugs : []
   const detectedLanguages = detectLanguages(text)
   const replyLanguage = typeof body.replyLanguage === 'string' ? body.replyLanguage : detectedLanguages[0]
+  const intakeStep = body.intakeStep === 'followup' ? 'followup' : 'initial'
   if (!text) return json({ error: 'A grievance description is required' }, 400)
   if (!hasGemini()) return json(fallback(text, hints, detectedLanguages, replyLanguage))
 
   const isMixedReply = replyLanguage.startsWith('mixed:')
-  const prompt = `You are an Indian public-service grievance intake assistant. The citizen may write in English, Hindi, Gujarati, Gujarati typed in English letters, or mixed Indian languages. Detected languages: ${detectedLanguages.join(', ')}. ${isMixedReply ? `Reply naturally using the same language mix (${replyLanguage.slice(6)}); do not collapse it to just one language.` : `Reply in ${replyLanguage}.`} Preserve the citizen's facts. Use the citizen's same language style, including Gujarati written in English letters when that is how they wrote.
+  const prompt = `You are an Indian public-service grievance intake assistant. The citizen may write in English, Hindi, Gujarati, Gujarati typed in English letters, or mixed Indian languages. Detected languages: ${detectedLanguages.join(', ')}. This is the ${intakeStep} intake step. ${isMixedReply ? `Reply naturally using the same language mix (${replyLanguage.slice(6)}); do not collapse it to just one language.` : `Reply in ${replyLanguage}.`} Preserve the citizen's facts. Use the citizen's same language style, including Gujarati written in English letters when that is how they wrote.
 Allowed category slugs: ${hints.join(', ')}.
 Citizen's message: ${text}
-Return STRICT JSON with categorySlug (one allowed slug; use other only if allowed), title (under 100 chars), description (clear factual 2-3 sentences), severity (integer 1-10), confidence (0..1), tags (2-4 lowercase strings), detectedLanguages (array), replyLanguage, assistantReply (brief reply in the requested language), and clarificationQuestions (0-3 questions in the requested language). Ask only for information that is missing. For civic hazards, first ask for an exact location, landmark, or pincode only when it is not already known; then ask whether there is immediate danger or injury only when it is not already stated. Do not ask again for facts already stated. If confidence is below 0.72, leave unclear fields conservative and use clarificationQuestions. Do not invent facts.`
+Return STRICT JSON with categorySlug (one allowed slug; use other only if allowed), title (under 100 chars), description (clear factual 2-3 sentences), severity (integer 1-10), confidence (0..1), tags (2-4 lowercase strings), detectedLanguages (array), replyLanguage, assistantReply (brief reply in the requested language), and clarificationQuestions (0-3 questions in the requested language). Ask only for information that is missing. For civic hazards, first ask for an exact location, landmark, or pincode only when it is not already known; then ask whether there is immediate danger or injury only when it is not already stated. Do not ask again for facts already stated. During the initial step, always ask at least one focused follow-up question before report review, even when confidence is high. If the location and safety facts are already clear, ask for one useful operational detail such as a nearby landmark, pincode, whether traffic is blocked, or whether the citizen can attach evidence. During a followup step, return an empty clarificationQuestions array only when the report has enough detail to prepare for review. If confidence is below 0.72, leave unclear fields conservative and use clarificationQuestions. Do not invent facts.`
   try {
     const raw = await geminiJson([{ text: prompt }])
     const allowed = new Set(hints)
@@ -110,7 +112,7 @@ Return STRICT JSON with categorySlug (one allowed slug; use other only if allowe
     const confidence = Math.min(1, Math.max(0, Number(raw.confidence) || 0.7))
     const clarificationQuestions = Array.isArray(raw.clarificationQuestions) ? raw.clarificationQuestions.map(String).slice(0, 3) : []
     const modelReply = typeof raw.assistantReply === 'string' ? raw.assistantReply.trim() : ''
-    if (confidence < 0.72 && clarificationQuestions.length === 0) {
+    if ((intakeStep === 'initial' || confidence < 0.72) && clarificationQuestions.length === 0) {
       clarificationQuestions.push(...clarificationCopy(replyLanguage).questions)
     }
     return json({
@@ -124,7 +126,7 @@ Return STRICT JSON with categorySlug (one allowed slug; use other only if allowe
       tags: Array.isArray(raw.tags) ? raw.tags.map(String).slice(0, 4) : [],
       detectedLanguages: Array.isArray(raw.detectedLanguages) ? raw.detectedLanguages.map(String).slice(0, 4) : detectedLanguages,
       replyLanguage: typeof raw.replyLanguage === 'string' ? raw.replyLanguage : replyLanguage,
-      assistantReply: modelReply || (confidence < 0.72 ? clarificationCopy(replyLanguage).reply : ''),
+      assistantReply: modelReply || (intakeStep === 'initial' || confidence < 0.72 ? clarificationCopy(replyLanguage).reply : ''),
       clarificationQuestions,
     })
   } catch (error) {

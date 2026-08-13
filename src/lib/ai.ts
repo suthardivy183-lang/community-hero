@@ -64,6 +64,7 @@ export function extractFromText(input: {
   hintCategorySlugs: string[]
   replyLanguage?: string
   detectedLanguages?: string[]
+  intakeStep?: 'initial' | 'followup'
 }): Promise<IssueAnalysis> {
   return invoke('ai-extract-text', input, analysisSchema)
 }
