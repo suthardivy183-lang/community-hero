@@ -23,6 +23,7 @@ import { StatusBadge } from '@/components/issue/StatusBadge'
 type ChatMessage = { id: string; sender: 'citizen' | 'assistant'; body: string }
 type VoiceLanguage = AppLanguage | 'mr' | 'bn' | 'ta' | 'te' | 'kn' | 'ml'
 type IntakeStage = 'idle' | 'clarifying' | 'review'
+type IntakeStep = 'initial' | 'followup'
 
 const minimumAutoFillConfidence = 0.72
 const openingMessage: ChatMessage = {
@@ -130,13 +131,17 @@ export function CommunityHeroAssistantPage() {
     setMessages((current) => [...current, { id: crypto.randomUUID(), sender: 'assistant', body }])
   }
 
-  function applyAnalysis(result: IssueAnalysis, sourceText: string) {
+  function applyAnalysis(result: IssueAnalysis, sourceText: string, intakeStep: IntakeStep) {
     const confidence = result.confidence ?? 0
+    const questions = result.clarificationQuestions ?? []
     setAnalysisConfidence(confidence)
-    setClarificationQuestions(result.clarificationQuestions ?? [])
+    setClarificationQuestions(questions)
     setIntakeNarrative(sourceText)
     setIntakeReplyLanguage(result.replyLanguage || aiReplyLanguage)
-    if (confidence >= minimumAutoFillConfidence) {
+    if (intakeStep === 'initial') {
+      setReviewOpen(false)
+      setIntakeStage('clarifying')
+    } else if (intakeStep === 'followup' && confidence >= minimumAutoFillConfidence && questions.length === 0) {
       const category = categories.find((item) => item.slug === result.categorySlug)
       if (category) {
         setCategoryId(category.id)
@@ -150,14 +155,15 @@ export function CommunityHeroAssistantPage() {
       setReviewOpen(true)
       setIntakeStage('review')
     } else {
+      setReviewOpen(false)
       setIntakeStage('clarifying')
     }
-    addAssistantReply(result.assistantReply || (confidence < minimumAutoFillConfidence
+    addAssistantReply(result.assistantReply || (intakeStep === 'initial' || confidence < minimumAutoFillConfidence
       ? 'I am not fully certain yet. Please answer the clarification questions, then I will prepare a review for you.'
       : 'I prepared a grievance draft using the existing CommunityHero categories and department routing. Please review it before reporting.'))
   }
 
-  async function understandIssue(sourceText: string, replyLanguage?: string) {
+  async function understandIssue(sourceText: string, replyLanguage?: string, intakeStep: IntakeStep = 'initial') {
     const trimmed = sourceText.trim()
     if (!trimmed) return
     setError(null)
@@ -168,7 +174,8 @@ export function CommunityHeroAssistantPage() {
         hintCategorySlugs: categories.map((category) => category.slug),
         replyLanguage: replyLanguage ?? aiReplyLanguage,
         detectedLanguages: detectedLanguage.languages,
-      }), trimmed)
+        intakeStep,
+      }), trimmed, intakeStep)
     } catch {
       setError('AI understanding is unavailable right now. You can still use the existing report flow.')
     } finally {
@@ -178,7 +185,7 @@ export function CommunityHeroAssistantPage() {
 
   async function askClarification(answer: string) {
     const combined = `${intakeNarrative}\nAdditional detail: ${answer}`.trim()
-    await understandIssue(combined, intakeReplyLanguage ?? aiReplyLanguage)
+    await understandIssue(combined, intakeReplyLanguage ?? aiReplyLanguage, 'followup')
   }
 
   function handoffEvidence() {

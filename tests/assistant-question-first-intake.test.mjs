@@ -9,7 +9,7 @@ test('a first incident message stays in clarification instead of opening the rep
   const page = read('src/pages/CommunityHeroAssistantPage.tsx')
 
   assert.ok(page.includes("type IntakeStep = 'initial' | 'followup'"))
-  assert.ok(page.includes("intakeStep: 'initial'"))
+  assert.ok(page.includes("intakeStep: IntakeStep = 'initial'"))
   assert.ok(page.includes("if (intakeStep === 'initial')"))
   assert.ok(page.includes("setIntakeStage('clarifying')"))
   assert.ok(page.includes("intakeStep === 'followup' && confidence >= minimumAutoFillConfidence"))
