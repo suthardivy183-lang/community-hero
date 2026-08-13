@@ -126,6 +126,8 @@ Never commit `.env.local`, Gemini keys, service-role keys, or a real production 
 
 ## Project structure
 
+For a five-minute VS Code walkthrough, start with [the jury code guide](docs/JURY_GUIDE.md).
+
 ```text
 src/
 ├── components/   UI, reporting, map, issue, community, and admin components

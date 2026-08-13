@@ -2,6 +2,13 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { geminiJson, hasGemini } from '../_shared/gemini.ts'
 
+const transliteratedGujaratiMarkers = /\b(?:moto|khado|khada|padyo|padyu|padi|thay|thayu|thai|chhe|che|samne|ni|pase|marg|rasta|pani|gatar|light|sarkhu|karavo|karva|accident|thayo|thai gayu)\b/giu
+
+function detectTransliteratedGujarati(text: string): boolean {
+  const matches = text.match(transliteratedGujaratiMarkers) ?? []
+  return new Set(matches.map((match) => match.toLowerCase())).size >= 2
+}
+
 interface ExtractBody {
   text: string
   hintCategorySlugs: string[]
@@ -55,7 +62,8 @@ function detectLanguages(text: string) {
   if (/[\u0C00-\u0C7F]/u.test(text)) detected.push('te')
   if (/[\u0C80-\u0CFF]/u.test(text)) detected.push('kn')
   if (/[\u0D00-\u0D7F]/u.test(text)) detected.push('ml')
-  if (/[A-Za-z]/.test(text)) detected.push('en')
+  if (detectTransliteratedGujarati(text)) detected.push('gu')
+  else if (/[A-Za-z]/.test(text)) detected.push('en')
   return [...new Set(detected.length ? detected : ['en'])]
 }
 
@@ -90,10 +98,10 @@ Deno.serve(async (req: Request) => {
   if (!hasGemini()) return json(fallback(text, hints, detectedLanguages, replyLanguage))
 
   const isMixedReply = replyLanguage.startsWith('mixed:')
-  const prompt = `You are an Indian public-service grievance intake assistant. The citizen may write in English, Hindi, Gujarati, or mixed Indian languages. Detected languages: ${detectedLanguages.join(', ')}. ${isMixedReply ? `Reply naturally using the same language mix (${replyLanguage.slice(6)}); do not collapse it to just one language.` : `Reply in ${replyLanguage}.`} Preserve the citizen's facts.
+  const prompt = `You are an Indian public-service grievance intake assistant. The citizen may write in English, Hindi, Gujarati, Gujarati typed in English letters, or mixed Indian languages. Detected languages: ${detectedLanguages.join(', ')}. ${isMixedReply ? `Reply naturally using the same language mix (${replyLanguage.slice(6)}); do not collapse it to just one language.` : `Reply in ${replyLanguage}.`} Preserve the citizen's facts. Use the citizen's same language style, including Gujarati written in English letters when that is how they wrote.
 Allowed category slugs: ${hints.join(', ')}.
 Citizen's message: ${text}
-Return STRICT JSON with categorySlug (one allowed slug; use other only if allowed), title (under 100 chars), description (clear factual 2-3 sentences), severity (integer 1-10), confidence (0..1), tags (2-4 lowercase strings), detectedLanguages (array), replyLanguage, assistantReply (brief reply in the requested language), and clarificationQuestions (0-3 questions in the requested language). If confidence is below 0.72, leave unclear fields conservative and use clarificationQuestions. Do not invent facts.`
+Return STRICT JSON with categorySlug (one allowed slug; use other only if allowed), title (under 100 chars), description (clear factual 2-3 sentences), severity (integer 1-10), confidence (0..1), tags (2-4 lowercase strings), detectedLanguages (array), replyLanguage, assistantReply (brief reply in the requested language), and clarificationQuestions (0-3 questions in the requested language). Ask only for information that is missing. For civic hazards, first ask for an exact location, landmark, or pincode only when it is not already known; then ask whether there is immediate danger or injury only when it is not already stated. Do not ask again for facts already stated. If confidence is below 0.72, leave unclear fields conservative and use clarificationQuestions. Do not invent facts.`
   try {
     const raw = await geminiJson([{ text: prompt }])
     const allowed = new Set(hints)
