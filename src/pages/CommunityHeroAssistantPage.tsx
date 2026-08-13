@@ -87,6 +87,7 @@ export function CommunityHeroAssistantPage() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [intakeStage, setIntakeStage] = useState<IntakeStage>('idle')
   const [intakeNarrative, setIntakeNarrative] = useState('')
+  const [intakeReplyLanguage, setIntakeReplyLanguage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const selectedIssue = useMemo(() => issues.find((issue) => issue.id === selectedIssueId) ?? null, [issues, selectedIssueId])
@@ -134,6 +135,7 @@ export function CommunityHeroAssistantPage() {
     setAnalysisConfidence(confidence)
     setClarificationQuestions(result.clarificationQuestions ?? [])
     setIntakeNarrative(sourceText)
+    setIntakeReplyLanguage(result.replyLanguage || aiReplyLanguage)
     if (confidence >= minimumAutoFillConfidence) {
       const category = categories.find((item) => item.slug === result.categorySlug)
       if (category) {
@@ -155,7 +157,7 @@ export function CommunityHeroAssistantPage() {
       : 'I prepared a grievance draft using the existing CommunityHero categories and department routing. Please review it before reporting.'))
   }
 
-  async function understandIssue(sourceText: string) {
+  async function understandIssue(sourceText: string, replyLanguage?: string) {
     const trimmed = sourceText.trim()
     if (!trimmed) return
     setError(null)
@@ -164,7 +166,7 @@ export function CommunityHeroAssistantPage() {
       applyAnalysis(await extractFromText({
         text: trimmed,
         hintCategorySlugs: categories.map((category) => category.slug),
-        replyLanguage: aiReplyLanguage,
+        replyLanguage: replyLanguage ?? aiReplyLanguage,
         detectedLanguages: detectedLanguage.languages,
       }), trimmed)
     } catch {
@@ -176,7 +178,7 @@ export function CommunityHeroAssistantPage() {
 
   async function askClarification(answer: string) {
     const combined = `${intakeNarrative}\nAdditional detail: ${answer}`.trim()
-    await understandIssue(combined)
+    await understandIssue(combined, intakeReplyLanguage ?? aiReplyLanguage)
   }
 
   function handoffEvidence() {
@@ -220,6 +222,7 @@ export function CommunityHeroAssistantPage() {
       addAssistantReply(`Your complaint ${result.complaint_number} has been submitted successfully. I can now explain its status whenever you ask.`)
       setReviewOpen(false)
       setIntakeStage('idle')
+      setIntakeReplyLanguage(null)
       chooseIssue(result.issue_id)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'We could not submit the grievance. Please try again.')

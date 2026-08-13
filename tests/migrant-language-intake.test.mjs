@@ -22,8 +22,8 @@ test('the conversational intake preserves the original language across follow-up
 
   assert.match(page, /intakeReplyLanguage/)
   assert.match(page, /setIntakeReplyLanguage/)
-  assert.match(page, /replyLanguage: replyLanguage ?? aiReplyLanguage/)
-  assert.match(page, /askClarification(trimmed)/)
+  assert.ok(page.includes('replyLanguage: replyLanguage ?? aiReplyLanguage'))
+  assert.ok(page.includes('askClarification(trimmed)'))
 })
 
 test('the AI prompt asks only for missing location and immediate-safety details before report review', () => {
